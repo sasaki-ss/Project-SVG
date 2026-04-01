@@ -1,6 +1,6 @@
 # SVG Analysis (Lucide)
 
-`icons` 配下の `.svg` をXMLとしてパースし、各SVGごとの要素タグ一覧と属性一覧をJSON出力する調査用ツールです。
+`icons` 配下の `.svg` をXMLとしてパースし、各SVGごとの要素タグ一覧（重複排除）と属性一覧をJSON出力する調査用ツールです。
 
 ## 使い方
 

@@ -56,11 +56,14 @@ def analyze_single_svg(svg_path: Path, root_dir: Path) -> SvgAnalysis:
         )
 
     tags: list[str] = []
+    seen_tags: set[str] = set()
     attr_list: list[ElementInfo] = []
 
     for elem in root.iter():
         clean_tag = strip_namespace(elem.tag)
-        tags.append(clean_tag)
+        if clean_tag not in seen_tags:
+            tags.append(clean_tag)
+            seen_tags.add(clean_tag)
         attr_list.append(ElementInfo(tag=clean_tag, attributes={k: str(v) for k, v in elem.attrib.items()}))
 
     return SvgAnalysis(file=relative_file, elements=tags, attribute_list=attr_list)
