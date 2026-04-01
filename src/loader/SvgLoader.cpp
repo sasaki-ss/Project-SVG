@@ -2,6 +2,9 @@
 
 #include <fstream>
 
+namespace svg{
+namespace loader{
+
 std::optional<std::string> SvgLoader::load_from_file(const std::filesystem::path& file_path) {
     try {
         const std::filesystem::path absolute_path = std::filesystem::absolute(file_path);
@@ -25,4 +28,7 @@ std::optional<std::string> SvgLoader::load_from_file(const std::filesystem::path
     } catch (...) {
         return std::nullopt;
     }
+}
+
+}
 }
