@@ -1,4 +1,4 @@
-#include "src/loader/SvgLoader.h"
+#include "SvgLoader.h"
 
 #include <fstream>
 
@@ -7,18 +7,16 @@ std::optional<std::string> SvgLoader::LoadFromFile(const std::filesystem::path& 
     try {
         const std::filesystem::path absolute_path = std::filesystem::absolute(file_path);
 
-        std::error_code error_code;
-        if (!std::filesystem::exists(absolute_path, error_code) || error_code) {
+        if (!std::filesystem::exists(absolute_path)) {
             return std::nullopt;
         }
 
-        error_code.clear();
-        if (!std::filesystem::is_regular_file(absolute_path, error_code) || error_code) {
+        if (!std::filesystem::is_regular_file(absolute_path)) {
             return std::nullopt;
         }
 
         std::ifstream input_stream(absolute_path, std::ios::binary);
-        if (!input_stream.is_open()) {
+        if (!input_stream) {
             return std::nullopt;
         }
 
