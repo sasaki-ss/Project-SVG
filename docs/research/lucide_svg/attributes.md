@@ -3,7 +3,7 @@
 - 集計対象SVG数: **1694**
 - 算出基準: 出現率は全SVG数を分母として算出
 
-| 属性名 | 使用要素 | 出現ファイル数 | 総出現回数 | 出現率 | 型（推定） | 代表値 |
+| 属性名 | 使用要素 | 出現ファイル数 | 総出現回数 | 出現率 | 型（推定） | 代表例 |
 | --- | --- | ---: | ---: | ---: | --- | --- |
 | `cx` | `circle`, `ellipse` | 377 | 526 | 22.26% | `number` | `12` |
 | `cy` | `circle`, `ellipse` | 377 | 526 | 22.26% | `number` | `12` |
@@ -11,8 +11,8 @@
 | `fill` | `circle`, `path`, `svg` | 1694 | 1713 | 100.00% | `paint` | `none` |
 | `height` | `rect`, `svg` | 1694 | 2084 | 100.00% | `number` | `24` |
 | `points` | `polygon`, `polyline` | 7 | 8 | 0.41% | `string` | `11 3 11 11 14 8 17 11 17 3` |
-| `r` | `circle` | 369 | 516 | 21.78% | `string` | `2` |
-| `rx` | `ellipse`, `rect` | 327 | 395 | 19.30% | `string` | `2` |
+| `r` | `circle` | 369 | 516 | 21.78% | `number` | `2` |
+| `rx` | `ellipse`, `rect` | 327 | 395 | 19.30% | `number` | `2` |
 | `ry` | `ellipse`, `rect` | 49 | 51 | 2.89% | `number` | `2` |
 | `stroke` | `svg` | 1694 | 1694 | 100.00% | `paint` | `currentColor` |
 | `stroke-linecap` | `svg` | 1694 | 1694 | 100.00% | `string` | `round` |
