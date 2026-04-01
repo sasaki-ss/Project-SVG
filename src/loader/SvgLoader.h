@@ -5,7 +5,7 @@
 #include <optional>
 #include <string>
 
-class SvgLoader{
+class SvgLoader {
 public:
     static std::optional<std::string> LoadFromFile(const std::filesystem::path& file_path);
 };
