@@ -1,6 +1,7 @@
 #ifndef PROJECT_SVG_PARSER_XML_NODE_EXTRACTOR_H_
 #define PROJECT_SVG_PARSER_XML_NODE_EXTRACTOR_H_
 
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -13,18 +14,39 @@ namespace parser{
 
 class XmlNodeExtractor {
 public:
-    static std::optional<ExtractedNode> extract_from_xml(std::string_view xml_content);
+    explicit XmlNodeExtractor(std::string_view xml_content);
+
+    std::optional<ExtractedNode> extract_from_xml();
 
 private:
-    class XmlReader;
+    class XmlReader {
+    public:
+        explicit XmlReader(std::string_view xml_content);
 
-    static bool normalize_document_start(XmlReader& xml_reader);
-    static std::optional<ExtractedNode> extract_node(XmlReader& xml_reader);
-    static bool extract_xml_name(XmlReader& xml_reader, std::string& extracted_name);
-    static bool extract_attributes(XmlReader& xml_reader, std::vector<ExtractedAttribute>& extracted_attributes);
-    static bool extract_quoted_value(XmlReader& xml_reader, std::string& extracted_value);
-    static bool extract_child_nodes(XmlReader& xml_reader, std::string_view parent_name, std::vector<ExtractedNode>& extracted_children);
-    static bool validate_document_end(XmlReader& xml_reader);
+        bool is_eof() const;
+        char peek() const;
+        void advance();
+        bool consume(char expected);
+        bool starts_with(std::string_view token) const;
+        bool consume_token(std::string_view token);
+        void skip_whitespace();
+        bool skip_until(std::string_view terminal);
+
+    private:
+        std::string_view xml_content;
+        std::size_t current_position = 0;
+    };
+
+    bool normalize_document_start();
+    std::optional<ExtractedNode> extract_node();
+    bool extract_xml_name(std::string& extracted_name);
+    bool extract_attributes(std::vector<ExtractedAttribute>& extracted_attributes);
+    bool extract_quoted_value(std::string& extracted_value);
+    bool extract_child_nodes(std::string_view parent_name, std::vector<ExtractedNode>& extracted_children);
+    bool validate_document_end();
+
+    std::string xml_content;
+    XmlReader xml_reader;
 };
 
 }
