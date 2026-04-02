@@ -189,6 +189,126 @@ bool test_extract_self_closing_nodes() {
     return expect_attribute(path_node, 0, "d", "M1 1", "self-closing");
 }
 
+bool test_extract_svg_with_xml_declaration() {
+    constexpr std::string_view xml_content =
+        R"(<?xml version="1.0" encoding="UTF-8"?>
+<svg><g/></svg>)";
+
+    svg::parser::XmlNodeExtractor extractor(xml_content);
+    const auto extracted = extractor.extract_from_xml();
+
+    if (!expect(extracted.has_value(), "xml declaration: expected parsed node.")) {
+        return false;
+    }
+
+    if (!expect(extracted->element_name == "svg", "xml declaration: root element must be svg.")) {
+        return false;
+    }
+
+    if (!expect(extracted->children.size() == 1, "xml declaration: expected one child node.")) {
+        return false;
+    }
+
+    return expect(extracted->children[0].element_name == "g", "xml declaration: child element must be g.");
+}
+
+bool test_extract_svg_ignoring_comments() {
+    constexpr std::string_view xml_content =
+        R"(<!-- document comment -->
+<svg><!-- child comment --><g id="layer"/><!-- trailing child comment --></svg>
+<!-- after root comment -->)";
+
+    svg::parser::XmlNodeExtractor extractor(xml_content);
+    const auto extracted = extractor.extract_from_xml();
+
+    if (!expect(extracted.has_value(), "comments: expected parsed node.")) {
+        return false;
+    }
+
+    if (!expect(extracted->children.size() == 1, "comments: expected one child node under svg.")) {
+        return false;
+    }
+
+    const auto& child = extracted->children[0];
+    if (!expect(child.element_name == "g", "comments: child element must be g.")) {
+        return false;
+    }
+
+    if (!expect(child.attributes.size() == 1, "comments: g must have one attribute.")) {
+        return false;
+    }
+
+    return expect_attribute(child, 0, "id", "layer", "comments");
+}
+
+bool test_extract_svg_with_doctype() {
+    constexpr std::string_view xml_content =
+        R"(<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg><rect/></svg>)";
+
+    svg::parser::XmlNodeExtractor extractor(xml_content);
+    const auto extracted = extractor.extract_from_xml();
+
+    if (!expect(extracted.has_value(), "doctype: expected parsed node.")) {
+        return false;
+    }
+
+    if (!expect(extracted->children.size() == 1, "doctype: expected one child node.")) {
+        return false;
+    }
+
+    return expect(extracted->children[0].element_name == "rect", "doctype: child element must be rect.");
+}
+
+bool test_extract_svg_ignoring_text_nodes() {
+    constexpr std::string_view xml_content =
+        R"(<svg>
+  before
+  <g>inside-text<path d="M0 0"/>after-text</g>
+  tail
+</svg>)";
+
+    svg::parser::XmlNodeExtractor extractor(xml_content);
+    const auto extracted = extractor.extract_from_xml();
+
+    if (!expect(extracted.has_value(), "text nodes: expected parsed node.")) {
+        return false;
+    }
+
+    if (!expect(extracted->children.size() == 1, "text nodes: expected one child node under svg.")) {
+        return false;
+    }
+
+    const auto& g_node = extracted->children[0];
+    if (!expect(g_node.element_name == "g", "text nodes: child element must be g.")) {
+        return false;
+    }
+
+    if (!expect(g_node.children.size() == 1, "text nodes: expected one nested child in g.")) {
+        return false;
+    }
+
+    const auto& path_node = g_node.children[0];
+    if (!expect(path_node.element_name == "path", "text nodes: nested child must be path.")) {
+        return false;
+    }
+
+    if (!expect(path_node.attributes.size() == 1, "text nodes: path must have one attribute.")) {
+        return false;
+    }
+
+    return expect_attribute(path_node, 0, "d", "M0 0", "text nodes");
+}
+
+bool test_fail_on_mismatched_closing_tag() {
+    constexpr std::string_view xml_content = R"(<svg><g></svg></g>)";
+
+    svg::parser::XmlNodeExtractor extractor(xml_content);
+    const auto extracted = extractor.extract_from_xml();
+
+    return expect(!extracted.has_value(), "mismatched closing tag: expected nullopt.");
+}
+
 bool test_fail_when_root_is_not_svg() {
     constexpr std::string_view xml_content = R"(<g></g>)";
 
@@ -206,6 +326,11 @@ int main() {
         {"extract svg attributes", test_extract_svg_attributes},
         {"extract children recursively", test_extract_children_recursively},
         {"extract self-closing nodes", test_extract_self_closing_nodes},
+        {"extract svg with xml declaration", test_extract_svg_with_xml_declaration},
+        {"extract svg ignoring comments", test_extract_svg_ignoring_comments},
+        {"extract svg with doctype", test_extract_svg_with_doctype},
+        {"extract svg ignoring text nodes", test_extract_svg_ignoring_text_nodes},
+        {"fail on mismatched closing tag", test_fail_on_mismatched_closing_tag},
         {"fail when root is not svg", test_fail_when_root_is_not_svg},
     };
 
