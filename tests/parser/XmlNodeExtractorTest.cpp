@@ -318,6 +318,33 @@ bool test_fail_when_root_is_not_svg() {
     return expect(!extracted.has_value(), "non-svg root: expected nullopt.");
 }
 
+bool test_fail_when_attribute_value_is_not_quoted() {
+    constexpr std::string_view xml_content = R"(<svg width=24></svg>)";
+
+    svg::parser::XmlNodeExtractor extractor(xml_content);
+    const auto extracted = extractor.extract_from_xml();
+
+    return expect(!extracted.has_value(), "unquoted attribute value: expected nullopt.");
+}
+
+bool test_fail_when_attribute_equal_is_missing() {
+    constexpr std::string_view xml_content = R"(<svg width "24"></svg>)";
+
+    svg::parser::XmlNodeExtractor extractor(xml_content);
+    const auto extracted = extractor.extract_from_xml();
+
+    return expect(!extracted.has_value(), "missing attribute equal: expected nullopt.");
+}
+
+bool test_fail_when_start_tag_is_incomplete() {
+    constexpr std::string_view xml_content = R"(<svg)";
+
+    svg::parser::XmlNodeExtractor extractor(xml_content);
+    const auto extracted = extractor.extract_from_xml();
+
+    return expect(!extracted.has_value(), "incomplete start tag: expected nullopt.");
+}
+
 }  // namespace
 
 int main() {
@@ -332,6 +359,9 @@ int main() {
         {"extract svg ignoring text nodes", test_extract_svg_ignoring_text_nodes},
         {"fail on mismatched closing tag", test_fail_on_mismatched_closing_tag},
         {"fail when root is not svg", test_fail_when_root_is_not_svg},
+        {"fail when attribute value is not quoted", test_fail_when_attribute_value_is_not_quoted},
+        {"fail when attribute equal is missing", test_fail_when_attribute_equal_is_missing},
+        {"fail when start tag is incomplete", test_fail_when_start_tag_is_incomplete},
     };
 
     for (const auto& test_case : test_cases) {
