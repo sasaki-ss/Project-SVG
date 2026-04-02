@@ -23,12 +23,17 @@ private:
     public:
         explicit XmlReader(std::string_view xml_content);
 
+        static bool is_xml_name_start_char(char value);
+        static bool is_xml_name_char(char value);
+
         bool is_eof() const;
         char peek() const;
         void advance();
         bool consume(char expected);
         bool starts_with(std::string_view token) const;
         bool consume_token(std::string_view token);
+        bool consume_enclosed(std::string_view begin_token, std::string_view end_token);
+        bool consume_doctype();
         void skip_whitespace();
         bool skip_until(std::string_view terminal);
 

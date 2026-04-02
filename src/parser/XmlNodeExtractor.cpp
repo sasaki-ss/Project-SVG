@@ -6,17 +6,13 @@
 namespace svg{
 namespace parser{
 
-namespace {
-
-bool is_xml_name_start_char(char value) {
+bool XmlNodeExtractor::XmlReader::is_xml_name_start_char(char value) {
     return std::isalpha(static_cast<unsigned char>(value)) != 0 || value == '_' || value == ':';
 }
 
-bool is_xml_name_char(char value) {
+bool XmlNodeExtractor::XmlReader::is_xml_name_char(char value) {
     return std::isalnum(static_cast<unsigned char>(value)) != 0 || value == '_' || value == ':' || value == '-' || value == '.';
 }
-
-}  // namespace
 
 XmlNodeExtractor::XmlReader::XmlReader(std::string_view xml_content)
     : xml_content(xml_content), current_position(0) {}
@@ -59,6 +55,37 @@ bool XmlNodeExtractor::XmlReader::consume_token(std::string_view token) {
     }
     current_position += token.size();
     return true;
+}
+
+bool XmlNodeExtractor::XmlReader::consume_enclosed(std::string_view begin_token, std::string_view end_token) {
+    if (!consume_token(begin_token)) {
+        return false;
+    }
+    return skip_until(end_token);
+}
+
+bool XmlNodeExtractor::XmlReader::consume_doctype() {
+    if (!consume_token("<!DOCTYPE")) {
+        return false;
+    }
+
+    int bracket_depth = 0;
+    while (!is_eof()) {
+        const char current = peek();
+        if (current == '[') {
+            ++bracket_depth;
+        } else if (current == ']') {
+            if (bracket_depth > 0) {
+                --bracket_depth;
+            }
+        } else if (current == '>' && bracket_depth == 0) {
+            advance();
+            return true;
+        }
+        advance();
+    }
+
+    return false;
 }
 
 void XmlNodeExtractor::XmlReader::skip_whitespace() {
@@ -107,40 +134,21 @@ bool XmlNodeExtractor::normalize_document_start() {
         xml_reader.skip_whitespace();
 
         if (xml_reader.starts_with("<?")) {
-            xml_reader.consume_token("<?");
-            if (!xml_reader.skip_until("?>")) {
+            if (!xml_reader.consume_enclosed("<?", "?>")) {
                 return false;
             }
             continue;
         }
 
         if (xml_reader.starts_with("<!--")) {
-            xml_reader.consume_token("<!--");
-            if (!xml_reader.skip_until("-->")) {
+            if (!xml_reader.consume_enclosed("<!--", "-->")) {
                 return false;
             }
             continue;
         }
 
         if (xml_reader.starts_with("<!DOCTYPE")) {
-            xml_reader.consume_token("<!DOCTYPE");
-            int bracket_depth = 0;
-            while (!xml_reader.is_eof()) {
-                const char current = xml_reader.peek();
-                if (current == '[') {
-                    ++bracket_depth;
-                } else if (current == ']') {
-                    if (bracket_depth > 0) {
-                        --bracket_depth;
-                    }
-                } else if (current == '>' && bracket_depth == 0) {
-                    xml_reader.advance();
-                    break;
-                }
-                xml_reader.advance();
-            }
-
-            if (xml_reader.is_eof() && xml_reader.peek() != '>') {
+            if (!xml_reader.consume_doctype()) {
                 return false;
             }
             continue;
@@ -189,7 +197,7 @@ std::optional<ExtractedNode> XmlNodeExtractor::extract_node() {
 }
 
 bool XmlNodeExtractor::extract_xml_name(std::string& extracted_name) {
-    if (!is_xml_name_start_char(xml_reader.peek())) {
+    if (!XmlReader::is_xml_name_start_char(xml_reader.peek())) {
         return false;
     }
 
@@ -197,7 +205,7 @@ bool XmlNodeExtractor::extract_xml_name(std::string& extracted_name) {
     extracted_name.push_back(xml_reader.peek());
     xml_reader.advance();
 
-    while (is_xml_name_char(xml_reader.peek())) {
+    while (XmlReader::is_xml_name_char(xml_reader.peek())) {
         extracted_name.push_back(xml_reader.peek());
         xml_reader.advance();
     }
@@ -258,8 +266,7 @@ bool XmlNodeExtractor::extract_quoted_value(std::string& extracted_value) {
 bool XmlNodeExtractor::extract_child_nodes(std::string_view parent_name, std::vector<ExtractedNode>& extracted_children) {
     while (!xml_reader.is_eof()) {
         if (xml_reader.starts_with("<!--")) {
-            xml_reader.consume_token("<!--");
-            if (!xml_reader.skip_until("-->")) {
+            if (!xml_reader.consume_enclosed("<!--", "-->")) {
                 return false;
             }
             continue;
@@ -303,16 +310,14 @@ bool XmlNodeExtractor::validate_document_end() {
         xml_reader.skip_whitespace();
 
         if (xml_reader.starts_with("<!--")) {
-            xml_reader.consume_token("<!--");
-            if (!xml_reader.skip_until("-->")) {
+            if (!xml_reader.consume_enclosed("<!--", "-->")) {
                 return false;
             }
             continue;
         }
 
         if (xml_reader.starts_with("<?")) {
-            xml_reader.consume_token("<?");
-            if (!xml_reader.skip_until("?>")) {
+            if (!xml_reader.consume_enclosed("<?", "?>")) {
                 return false;
             }
             continue;
