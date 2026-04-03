@@ -37,6 +37,9 @@ if (BUILD_TESTING)
     file(GLOB PROJECT_SVG_PARSER_TEST_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/parser/*.cpp"
     )
+    file(GLOB PROJECT_SVG_INTERPRETER_TEST_SOURCES CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/interpreter/*.cpp"
+    )
 
     if (PROJECT_SVG_PARSER_TEST_SOURCES)
         add_executable(project_svg_parser_tests
@@ -64,5 +67,32 @@ if (BUILD_TESTING)
 
         enable_testing()
         add_test(NAME parser_tests COMMAND project_svg_parser_tests)
+    endif()
+
+    if (PROJECT_SVG_INTERPRETER_TEST_SOURCES)
+        add_executable(project_svg_interpreter_tests
+            ${PROJECT_SVG_INTERPRETER_TEST_SOURCES}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter/SvgElementInterpreter.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter/SvgShapeInterpreter.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter/SvgInterpreterUtility.cpp
+        )
+
+        target_include_directories(project_svg_interpreter_tests
+            PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}/src
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/parser
+        )
+
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            target_compile_options(project_svg_interpreter_tests PRIVATE -Wall -Wextra -Wpedantic)
+        elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            target_compile_options(project_svg_interpreter_tests PRIVATE -Wall -Wextra -Wpedantic)
+        elseif (MSVC)
+            target_compile_options(project_svg_interpreter_tests PRIVATE /W4)
+        endif()
+
+        enable_testing()
+        add_test(NAME interpreter_tests COMMAND project_svg_interpreter_tests)
     endif()
 endif()
