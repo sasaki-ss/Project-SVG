@@ -26,6 +26,10 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret(const parser::ExtractedNo
             return interpret_line(node);
         case SvgElementType::Ellipse:
             return interpret_ellipse(node);
+        case SvgElementType::Polyline:
+            return interpret_polyline(node);
+        case SvgElementType::Polygon:
+            return interpret_polygon(node);
         default:
             return std::nullopt;
     }
@@ -145,6 +149,40 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret_ellipse(const ExtractedNo
     return shape;
 }
 
+std::optional<SvgShape> SvgShapeInterpreter::interpret_polyline(const ExtractedNode& node) {
+    const auto points_value = find_attribute_value(node, "points");
+    if (!points_value.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto points = parse_points(*points_value);
+    if (!points.has_value()) {
+        return std::nullopt;
+    }
+
+    SvgShape shape;
+    shape.type = SvgElementType::Polyline;
+    shape.data = PolylineElement{*points};
+    return shape;
+}
+
+std::optional<SvgShape> SvgShapeInterpreter::interpret_polygon(const ExtractedNode& node) {
+    const auto points_value = find_attribute_value(node, "points");
+    if (!points_value.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto points = parse_points(*points_value);
+    if (!points.has_value()) {
+        return std::nullopt;
+    }
+
+    SvgShape shape;
+    shape.type = SvgElementType::Polygon;
+    shape.data = PolygonElement{*points};
+    return shape;
+}
+
 std::optional<std::string> SvgShapeInterpreter::find_attribute_value(
     const ExtractedNode& node,
     std::string_view attribute_name) {
@@ -218,6 +256,58 @@ std::vector<std::string_view> SvgShapeInterpreter::split_by_space(std::string_vi
     }
 
     return tokens;
+}
+
+std::optional<std::vector<Point>> SvgShapeInterpreter::parse_points(std::string_view value) {
+    const auto tokens = split_by_space(value);
+    std::vector<double> parsed_values;
+
+    for (const auto token : tokens) {
+        std::size_t position = 0;
+        const auto token_size = token.size();
+
+        while (position < token_size) {
+            const auto comma_position = token.find(',', position);
+            if (comma_position == std::string_view::npos) {
+                const auto number_text = token.substr(position);
+                if (number_text.empty()) {
+                    return std::nullopt;
+                }
+
+                const auto parsed_number = parse_double(number_text);
+                if (!parsed_number.has_value()) {
+                    return std::nullopt;
+                }
+
+                parsed_values.push_back(*parsed_number);
+                break;
+            }
+
+            const auto number_text = token.substr(position, comma_position - position);
+            if (number_text.empty()) {
+                return std::nullopt;
+            }
+
+            const auto parsed_number = parse_double(number_text);
+            if (!parsed_number.has_value()) {
+                return std::nullopt;
+            }
+
+            parsed_values.push_back(*parsed_number);
+            position = comma_position + 1;
+        }
+    }
+
+    if (parsed_values.size() % 2 != 0) {
+        return std::nullopt;
+    }
+
+    std::vector<Point> points;
+    for (std::size_t index = 0; index < parsed_values.size(); index += 2) {
+        points.push_back(Point{parsed_values[index], parsed_values[index + 1]});
+    }
+
+    return points;
 }
 
 std::optional<SvgElementType> SvgShapeInterpreter::interpret_element_type(

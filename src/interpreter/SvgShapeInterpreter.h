@@ -52,6 +52,12 @@ private:
     static std::optional<SvgShape> interpret_line(const parser::ExtractedNode& node);
 
     static std::optional<SvgShape> interpret_ellipse(const parser::ExtractedNode& node);
+
+    static std::optional<SvgShape> interpret_polyline(const parser::ExtractedNode& node);
+
+    static std::optional<SvgShape> interpret_polygon(const parser::ExtractedNode& node);
+
+    static std::optional<std::vector<Point>> parse_points(std::string_view value);
 };
 
 }
