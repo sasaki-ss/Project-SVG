@@ -1,8 +1,8 @@
 #include "SvgElementInterpreter.h"
 
 #include <array>
-#include <charconv>
 
+#include "SvgShapeInterpreter.h"
 #include "parser/ExtractedNode.h"
 
 namespace svg{
@@ -16,11 +16,11 @@ std::optional<InterpretedSvg> SvgElementInterpreter::interpret(const parser::Ext
     }
 
     const auto parsed_view_box = require_parsed_view_box_attribute(root, "viewBox");
-    const auto parsed_width = require_parsed_double_attribute(root, "width");
-    const auto parsed_height = require_parsed_double_attribute(root, "height");
-    const auto stroke_value = find_attribute_value(root, "stroke");
-    const auto fill_value = find_attribute_value(root, "fill");
-    const auto parsed_stroke_width = require_parsed_double_attribute(root, "stroke-width");
+    const auto parsed_width = SvgShapeInterpreter::require_parsed_double_attribute(root, "width");
+    const auto parsed_height = SvgShapeInterpreter::require_parsed_double_attribute(root, "height");
+    const auto stroke_value = SvgShapeInterpreter::find_attribute_value(root, "stroke");
+    const auto fill_value = SvgShapeInterpreter::find_attribute_value(root, "fill");
+    const auto parsed_stroke_width = SvgShapeInterpreter::require_parsed_double_attribute(root, "stroke-width");
     const auto parsed_stroke_linecap = require_parsed_stroke_linecap_attribute(root, "stroke-linecap");
     const auto parsed_stroke_linejoin = require_parsed_stroke_linejoin_attribute(root, "stroke-linejoin");
 
@@ -35,10 +35,6 @@ std::optional<InterpretedSvg> SvgElementInterpreter::interpret(const parser::Ext
         return std::nullopt;
     }
 
-    for (const auto& child_node : root.children) {
-        traverse_child_nodes(child_node);
-    }
-
     InterpretedSvg interpreted_svg;
     interpreted_svg.view_box = *parsed_view_box;
     interpreted_svg.width = *parsed_width;
@@ -48,55 +44,30 @@ std::optional<InterpretedSvg> SvgElementInterpreter::interpret(const parser::Ext
     interpreted_svg.root_style.stroke_width = *parsed_stroke_width;
     interpreted_svg.root_style.stroke_linecap = *parsed_stroke_linecap;
     interpreted_svg.root_style.stroke_linejoin = *parsed_stroke_linejoin;
+    interpreted_svg.shapes = traverse_child_nodes(root);
     return interpreted_svg;
 }
 
-std::optional<SvgElementType> SvgElementInterpreter::interpret_element_type(std::string_view element_name) {
-    if (element_name == "path") {
-        return SvgElementType::Path;
-    }
-    if (element_name == "circle") {
-        return SvgElementType::Circle;
-    }
-    if (element_name == "rect") {
-        return SvgElementType::Rect;
-    }
-    if (element_name == "line") {
-        return SvgElementType::Line;
-    }
-    if (element_name == "ellipse") {
-        return SvgElementType::Ellipse;
-    }
-    if (element_name == "polyline") {
-        return SvgElementType::Polyline;
-    }
-    if (element_name == "polygon") {
-        return SvgElementType::Polygon;
-    }
+std::vector<SvgShape> SvgElementInterpreter::traverse_child_nodes(const parser::ExtractedNode& node) {
+    std::vector<SvgShape> shapes;
 
-    return std::nullopt;
-}
-
-void SvgElementInterpreter::traverse_child_nodes(const parser::ExtractedNode& node) {
     for (const auto& child_node : node.children) {
-        traverse_child_nodes(child_node);
-    }
-}
+        const auto parsed_shape = SvgShapeInterpreter::interpret(child_node);
+        if (parsed_shape.has_value()) {
+            shapes.push_back(*parsed_shape);
+        }
 
-std::optional<double> SvgElementInterpreter::require_parsed_double_attribute(
-    const ExtractedNode& node,
-    std::string_view attribute_name) {
-    const auto value = find_attribute_value(node, attribute_name);
-    if (!value.has_value()) {
-        return std::nullopt;
+        const auto child_shapes = traverse_child_nodes(child_node);
+        shapes.insert(shapes.end(), child_shapes.begin(), child_shapes.end());
     }
-    return parse_double(*value);
+
+    return shapes;
 }
 
 std::optional<SvgViewBox> SvgElementInterpreter::require_parsed_view_box_attribute(
     const ExtractedNode& node,
     std::string_view attribute_name) {
-    const auto value = find_attribute_value(node, attribute_name);
+    const auto value = SvgShapeInterpreter::find_attribute_value(node, attribute_name);
     if (!value.has_value()) {
         return std::nullopt;
     }
@@ -106,7 +77,7 @@ std::optional<SvgViewBox> SvgElementInterpreter::require_parsed_view_box_attribu
 std::optional<StrokeLineCap> SvgElementInterpreter::require_parsed_stroke_linecap_attribute(
     const ExtractedNode& node,
     std::string_view attribute_name) {
-    const auto value = find_attribute_value(node, attribute_name);
+    const auto value = SvgShapeInterpreter::find_attribute_value(node, attribute_name);
     if (!value.has_value()) {
         return std::nullopt;
     }
@@ -116,71 +87,22 @@ std::optional<StrokeLineCap> SvgElementInterpreter::require_parsed_stroke_lineca
 std::optional<StrokeLineJoin> SvgElementInterpreter::require_parsed_stroke_linejoin_attribute(
     const ExtractedNode& node,
     std::string_view attribute_name) {
-    const auto value = find_attribute_value(node, attribute_name);
+    const auto value = SvgShapeInterpreter::find_attribute_value(node, attribute_name);
     if (!value.has_value()) {
         return std::nullopt;
     }
     return parse_stroke_linejoin(*value);
 }
 
-std::optional<std::string> SvgElementInterpreter::find_attribute_value(
-    const ExtractedNode& node,
-    std::string_view attribute_name) {
-    for (const auto& attribute : node.attributes) {
-        if (attribute.name == attribute_name) {
-            return attribute.value;
-        }
-    }
-    return std::nullopt;
-}
-
-std::vector<std::string_view> SvgElementInterpreter::split_by_space(std::string_view value) {
-    std::vector<std::string_view> tokens;
-    std::size_t position = 0;
-    const auto value_size = value.size();
-
-    while (position < value_size) {
-        while (position < value_size && value[position] == ' ') {
-            ++position;
-        }
-
-        if (position >= value_size) {
-            break;
-        }
-
-        const auto next_delimiter = value.find(' ', position);
-        if (next_delimiter == std::string_view::npos) {
-            tokens.push_back(value.substr(position));
-            break;
-        }
-
-        tokens.push_back(value.substr(position, next_delimiter - position));
-        position = next_delimiter + 1;
-    }
-
-    return tokens;
-}
-
-std::optional<double> SvgElementInterpreter::parse_double(std::string_view value) {
-    double parsed_value = 0.0;
-    const auto* begin = value.data();
-    const auto* end = begin + value.size();
-    const auto result = std::from_chars(begin, end, parsed_value);
-    if (result.ec != std::errc() || result.ptr != end) {
-        return std::nullopt;
-    }
-    return parsed_value;
-}
-
 std::optional<SvgViewBox> SvgElementInterpreter::parse_view_box(std::string_view value) {
-    const auto tokens = split_by_space(value);
+    const auto tokens = SvgShapeInterpreter::split_by_space(value);
     if (tokens.size() != 4) {
         return std::nullopt;
     }
 
     std::array<double, 4> parsed_values = {0.0, 0.0, 0.0, 0.0};
     for (std::size_t index = 0; index < tokens.size(); ++index) {
-        const auto parsed_token = parse_double(tokens[index]);
+        const auto parsed_token = SvgShapeInterpreter::parse_double(tokens[index]);
         if (!parsed_token.has_value()) {
             return std::nullopt;
         }
