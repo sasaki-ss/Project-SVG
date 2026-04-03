@@ -58,6 +58,242 @@ bool expect_point(const Point& point, double expected_x, double expected_y, std:
     return expect(point.y == expected_y, std::string(case_name) + ": unexpected y value.");
 }
 
+
+
+bool test_interpret_svg_root_not_svg_returns_nullopt() {
+    const auto root = create_node(
+        "g",
+        {
+            {"viewBox", "0 0 24 24"},
+            {"width", "24"},
+            {"height", "24"},
+            {"stroke", "currentColor"},
+            {"fill", "none"},
+            {"stroke-width", "2"},
+            {"stroke-linecap", "round"},
+            {"stroke-linejoin", "round"},
+        });
+
+    const std::optional<InterpretedSvg> interpreted = SvgElementInterpreter::interpret(root);
+
+    return expect(!interpreted.has_value(), "element invalid root: expected nullopt.");
+}
+
+bool test_interpret_svg_root_invalid_view_box_returns_nullopt() {
+    const auto root = create_node(
+        "svg",
+        {
+            {"viewBox", "0 0 24"},
+            {"width", "24"},
+            {"height", "24"},
+            {"stroke", "currentColor"},
+            {"fill", "none"},
+            {"stroke-width", "2"},
+            {"stroke-linecap", "round"},
+            {"stroke-linejoin", "round"},
+        });
+
+    const std::optional<InterpretedSvg> interpreted = SvgElementInterpreter::interpret(root);
+
+    return expect(!interpreted.has_value(), "element invalid viewBox: expected nullopt.");
+}
+
+bool test_interpret_svg_root_missing_required_attribute_returns_nullopt() {
+    const auto root = create_node(
+        "svg",
+        {
+            {"viewBox", "0 0 24 24"},
+            {"height", "24"},
+            {"stroke", "currentColor"},
+            {"fill", "none"},
+            {"stroke-width", "2"},
+            {"stroke-linecap", "round"},
+            {"stroke-linejoin", "round"},
+        });
+
+    const std::optional<InterpretedSvg> interpreted = SvgElementInterpreter::interpret(root);
+
+    return expect(!interpreted.has_value(), "element missing required attribute: expected nullopt.");
+}
+
+bool test_interpret_svg_root_invalid_stroke_linecap_returns_nullopt() {
+    const auto root = create_node(
+        "svg",
+        {
+            {"viewBox", "0 0 24 24"},
+            {"width", "24"},
+            {"height", "24"},
+            {"stroke", "currentColor"},
+            {"fill", "none"},
+            {"stroke-width", "2"},
+            {"stroke-linecap", "square"},
+            {"stroke-linejoin", "round"},
+        });
+
+    const std::optional<InterpretedSvg> interpreted = SvgElementInterpreter::interpret(root);
+
+    return expect(!interpreted.has_value(), "element invalid stroke-linecap: expected nullopt.");
+}
+
+bool test_interpret_svg_root_invalid_stroke_linejoin_returns_nullopt() {
+    const auto root = create_node(
+        "svg",
+        {
+            {"viewBox", "0 0 24 24"},
+            {"width", "24"},
+            {"height", "24"},
+            {"stroke", "currentColor"},
+            {"fill", "none"},
+            {"stroke-width", "2"},
+            {"stroke-linecap", "round"},
+            {"stroke-linejoin", "bevel"},
+        });
+
+    const std::optional<InterpretedSvg> interpreted = SvgElementInterpreter::interpret(root);
+
+    return expect(!interpreted.has_value(), "element invalid stroke-linejoin: expected nullopt.");
+}
+
+bool test_interpret_unsupported_shape_returns_nullopt() {
+    const auto node = create_node("g", {});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape unsupported element: expected nullopt.");
+}
+
+bool test_interpret_path_missing_d_returns_nullopt() {
+    const auto node = create_node("path", {});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape path missing d: expected nullopt.");
+}
+
+bool test_interpret_circle_missing_required_attribute_returns_nullopt() {
+    const auto node = create_node("circle", {{"cx", "5"}, {"r", "7"}});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape circle missing required attribute: expected nullopt.");
+}
+
+bool test_interpret_circle_invalid_number_returns_nullopt() {
+    const auto node = create_node("circle", {{"cx", "invalid"}, {"cy", "6"}, {"r", "7"}});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape circle invalid number: expected nullopt.");
+}
+
+bool test_interpret_rect_missing_required_attribute_returns_nullopt() {
+    const auto node = create_node("rect", {{"x", "1"}, {"width", "10"}, {"height", "20"}});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape rect missing required attribute: expected nullopt.");
+}
+
+bool test_interpret_rect_invalid_rx_returns_nullopt() {
+    const auto node = create_node(
+        "rect",
+        {{"x", "1"}, {"y", "2"}, {"width", "10"}, {"height", "20"}, {"rx", "invalid"}});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape rect invalid rx: expected nullopt.");
+}
+
+bool test_interpret_rect_invalid_ry_returns_nullopt() {
+    const auto node = create_node(
+        "rect",
+        {{"x", "1"}, {"y", "2"}, {"width", "10"}, {"height", "20"}, {"ry", "invalid"}});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape rect invalid ry: expected nullopt.");
+}
+
+bool test_interpret_line_missing_required_attribute_returns_nullopt() {
+    const auto node = create_node("line", {{"x1", "1"}, {"x2", "3"}, {"y2", "4"}});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape line missing required attribute: expected nullopt.");
+}
+
+bool test_interpret_line_invalid_number_returns_nullopt() {
+    const auto node = create_node("line", {{"x1", "1"}, {"y1", "invalid"}, {"x2", "3"}, {"y2", "4"}});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape line invalid number: expected nullopt.");
+}
+
+bool test_interpret_ellipse_missing_required_attribute_returns_nullopt() {
+    const auto node = create_node("ellipse", {{"cx", "3"}, {"cy", "4"}, {"rx", "5"}});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape ellipse missing required attribute: expected nullopt.");
+}
+
+bool test_interpret_ellipse_invalid_number_returns_nullopt() {
+    const auto node = create_node("ellipse", {{"cx", "3"}, {"cy", "4"}, {"rx", "invalid"}, {"ry", "6"}});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape ellipse invalid number: expected nullopt.");
+}
+
+bool test_interpret_polyline_missing_points_returns_nullopt() {
+    const auto node = create_node("polyline", {});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape polyline missing points: expected nullopt.");
+}
+
+bool test_interpret_polyline_odd_points_count_returns_nullopt() {
+    const auto node = create_node("polyline", {{"points", "1 2 3"}});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape polyline odd points count: expected nullopt.");
+}
+
+bool test_interpret_polyline_invalid_points_token_returns_nullopt() {
+    const auto node = create_node("polyline", {{"points", "1 2 x 4"}});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape polyline invalid points token: expected nullopt.");
+}
+
+bool test_interpret_polygon_missing_points_returns_nullopt() {
+    const auto node = create_node("polygon", {});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape polygon missing points: expected nullopt.");
+}
+
+bool test_interpret_polygon_odd_points_count_returns_nullopt() {
+    const auto node = create_node("polygon", {{"points", "7 8 9"}});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape polygon odd points count: expected nullopt.");
+}
+
+bool test_interpret_polygon_invalid_points_token_returns_nullopt() {
+    const auto node = create_node("polygon", {{"points", "7 8 invalid 10"}});
+
+    const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
+
+    return expect(!shape.has_value(), "shape polygon invalid points token: expected nullopt.");
+}
+
 bool test_interpret_svg_root_minimal_success() {
     const auto root = create_node(
         "svg",
@@ -451,13 +687,35 @@ int main() {
         {"element interpret minimal svg root", test_interpret_svg_root_minimal_success},
         {"element reflect root attributes", test_interpret_svg_root_attributes_reflected},
         {"element collect child shapes", test_interpret_svg_root_collects_child_shapes},
+        {"element root must be svg", test_interpret_svg_root_not_svg_returns_nullopt},
+        {"element invalid viewBox", test_interpret_svg_root_invalid_view_box_returns_nullopt},
+        {"element missing required root attribute", test_interpret_svg_root_missing_required_attribute_returns_nullopt},
+        {"element unsupported stroke-linecap", test_interpret_svg_root_invalid_stroke_linecap_returns_nullopt},
+        {"element unsupported stroke-linejoin", test_interpret_svg_root_invalid_stroke_linejoin_returns_nullopt},
+        {"shape unsupported element", test_interpret_unsupported_shape_returns_nullopt},
+        {"shape path missing d", test_interpret_path_missing_d_returns_nullopt},
         {"shape interpret path", test_interpret_path_success},
+        {"shape circle missing required attribute", test_interpret_circle_missing_required_attribute_returns_nullopt},
+        {"shape circle invalid number", test_interpret_circle_invalid_number_returns_nullopt},
         {"shape interpret circle", test_interpret_circle_success},
+        {"shape rect missing required attribute", test_interpret_rect_missing_required_attribute_returns_nullopt},
+        {"shape rect invalid rx", test_interpret_rect_invalid_rx_returns_nullopt},
+        {"shape rect invalid ry", test_interpret_rect_invalid_ry_returns_nullopt},
         {"shape interpret rect without rx ry", test_interpret_rect_without_rx_ry_success},
         {"shape interpret rect with rx ry", test_interpret_rect_with_rx_ry_success},
+        {"shape line missing required attribute", test_interpret_line_missing_required_attribute_returns_nullopt},
+        {"shape line invalid number", test_interpret_line_invalid_number_returns_nullopt},
         {"shape interpret line", test_interpret_line_success},
+        {"shape ellipse missing required attribute", test_interpret_ellipse_missing_required_attribute_returns_nullopt},
+        {"shape ellipse invalid number", test_interpret_ellipse_invalid_number_returns_nullopt},
         {"shape interpret ellipse", test_interpret_ellipse_success},
+        {"shape polyline missing points", test_interpret_polyline_missing_points_returns_nullopt},
+        {"shape polyline odd points count", test_interpret_polyline_odd_points_count_returns_nullopt},
+        {"shape polyline invalid points token", test_interpret_polyline_invalid_points_token_returns_nullopt},
         {"shape interpret polyline with space separated points", test_interpret_polyline_points_split_by_space_success},
+        {"shape polygon missing points", test_interpret_polygon_missing_points_returns_nullopt},
+        {"shape polygon odd points count", test_interpret_polygon_odd_points_count_returns_nullopt},
+        {"shape polygon invalid points token", test_interpret_polygon_invalid_points_token_returns_nullopt},
         {"shape interpret polygon with comma separated points", test_interpret_polygon_points_with_comma_success},
     };
 
