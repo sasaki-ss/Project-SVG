@@ -25,9 +25,6 @@ public:
 private:
     SvgElementInterpreter() = delete;
 
-    static std::optional<std::string> require_attribute_value(
-        const parser::ExtractedNode& node,
-        std::string_view attribute_name);
     static std::optional<double> require_parsed_double_attribute(
         const parser::ExtractedNode& node,
         std::string_view attribute_name);

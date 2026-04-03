@@ -18,8 +18,8 @@ std::optional<InterpretedSvg> SvgElementInterpreter::interpret(const parser::Ext
     const auto parsed_view_box = require_parsed_view_box_attribute(root, "viewBox");
     const auto parsed_width = require_parsed_double_attribute(root, "width");
     const auto parsed_height = require_parsed_double_attribute(root, "height");
-    const auto stroke_value = require_attribute_value(root, "stroke");
-    const auto fill_value = require_attribute_value(root, "fill");
+    const auto stroke_value = find_attribute_value(root, "stroke");
+    const auto fill_value = find_attribute_value(root, "fill");
     const auto parsed_stroke_width = require_parsed_double_attribute(root, "stroke-width");
     const auto parsed_stroke_linecap = require_parsed_stroke_linecap_attribute(root, "stroke-linecap");
     const auto parsed_stroke_linejoin = require_parsed_stroke_linejoin_attribute(root, "stroke-linejoin");
@@ -83,16 +83,10 @@ void SvgElementInterpreter::traverse_child_nodes(const parser::ExtractedNode& no
     }
 }
 
-std::optional<std::string> SvgElementInterpreter::require_attribute_value(
-    const ExtractedNode& node,
-    std::string_view attribute_name) {
-    return find_attribute_value(node, attribute_name);
-}
-
 std::optional<double> SvgElementInterpreter::require_parsed_double_attribute(
     const ExtractedNode& node,
     std::string_view attribute_name) {
-    const auto value = require_attribute_value(node, attribute_name);
+    const auto value = find_attribute_value(node, attribute_name);
     if (!value.has_value()) {
         return std::nullopt;
     }
@@ -102,7 +96,7 @@ std::optional<double> SvgElementInterpreter::require_parsed_double_attribute(
 std::optional<SvgViewBox> SvgElementInterpreter::require_parsed_view_box_attribute(
     const ExtractedNode& node,
     std::string_view attribute_name) {
-    const auto value = require_attribute_value(node, attribute_name);
+    const auto value = find_attribute_value(node, attribute_name);
     if (!value.has_value()) {
         return std::nullopt;
     }
@@ -112,7 +106,7 @@ std::optional<SvgViewBox> SvgElementInterpreter::require_parsed_view_box_attribu
 std::optional<StrokeLineCap> SvgElementInterpreter::require_parsed_stroke_linecap_attribute(
     const ExtractedNode& node,
     std::string_view attribute_name) {
-    const auto value = require_attribute_value(node, attribute_name);
+    const auto value = find_attribute_value(node, attribute_name);
     if (!value.has_value()) {
         return std::nullopt;
     }
@@ -122,7 +116,7 @@ std::optional<StrokeLineCap> SvgElementInterpreter::require_parsed_stroke_lineca
 std::optional<StrokeLineJoin> SvgElementInterpreter::require_parsed_stroke_linejoin_attribute(
     const ExtractedNode& node,
     std::string_view attribute_name) {
-    const auto value = require_attribute_value(node, attribute_name);
+    const auto value = find_attribute_value(node, attribute_name);
     if (!value.has_value()) {
         return std::nullopt;
     }
