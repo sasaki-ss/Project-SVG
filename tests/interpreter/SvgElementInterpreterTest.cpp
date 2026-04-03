@@ -2,6 +2,7 @@
 #include <string>
 #include <string_view>
 
+#include "ExtractedNode.h"
 #include "SvgElementInterpreter.h"
 
 namespace {
