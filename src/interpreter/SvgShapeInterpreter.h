@@ -31,6 +31,10 @@ public:
         const parser::ExtractedNode& node,
         std::string_view attribute_name);
 
+    static std::optional<std::optional<double>> parse_optional_double_attribute(
+        const parser::ExtractedNode& node,
+        std::string_view attribute_name);
+
     static std::vector<std::string_view> split_by_space(std::string_view value);
 
 private:
@@ -38,6 +42,16 @@ private:
 
     static std::optional<SvgElementType> interpret_element_type(
         std::string_view element_name);
+
+    static std::optional<SvgShape> interpret_path(const parser::ExtractedNode& node);
+
+    static std::optional<SvgShape> interpret_circle(const parser::ExtractedNode& node);
+
+    static std::optional<SvgShape> interpret_rect(const parser::ExtractedNode& node);
+
+    static std::optional<SvgShape> interpret_line(const parser::ExtractedNode& node);
+
+    static std::optional<SvgShape> interpret_ellipse(const parser::ExtractedNode& node);
 };
 
 }
