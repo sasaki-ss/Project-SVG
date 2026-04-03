@@ -143,13 +143,14 @@ std::optional<std::string> SvgElementInterpreter::find_attribute_value(
 std::vector<std::string_view> SvgElementInterpreter::split_by_space(std::string_view value) {
     std::vector<std::string_view> tokens;
     std::size_t position = 0;
+    const auto value_size = value.size();
 
-    while (position < value.size()) {
-        while (position < value.size() && value[position] == ' ') {
+    while (position < value_size) {
+        while (position < value_size && value[position] == ' ') {
             ++position;
         }
 
-        if (position >= value.size()) {
+        if (position >= value_size) {
             break;
         }
 
