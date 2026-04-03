@@ -15,23 +15,20 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret(const parser::ExtractedNo
         return std::nullopt;
     }
 
-    if (*element_type == SvgElementType::Path) {
-        return interpret_path(node);
+    switch (*element_type) {
+        case SvgElementType::Path:
+            return interpret_path(node);
+        case SvgElementType::Circle:
+            return interpret_circle(node);
+        case SvgElementType::Rect:
+            return interpret_rect(node);
+        case SvgElementType::Line:
+            return interpret_line(node);
+        case SvgElementType::Ellipse:
+            return interpret_ellipse(node);
+        default:
+            return std::nullopt;
     }
-    if (*element_type == SvgElementType::Circle) {
-        return interpret_circle(node);
-    }
-    if (*element_type == SvgElementType::Rect) {
-        return interpret_rect(node);
-    }
-    if (*element_type == SvgElementType::Line) {
-        return interpret_line(node);
-    }
-    if (*element_type == SvgElementType::Ellipse) {
-        return interpret_ellipse(node);
-    }
-
-    return std::nullopt;
 }
 
 std::optional<SvgShape> SvgShapeInterpreter::interpret_path(const ExtractedNode& node) {
@@ -84,22 +81,16 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret_rect(const ExtractedNode&
         return std::nullopt;
     }
 
-    std::optional<double> rx;
+    const auto rx = parse_optional_double_attribute(node, "rx");
     const auto rx_value = find_attribute_value(node, "rx");
-    if (rx_value.has_value()) {
-        rx = parse_double(*rx_value);
-        if (!rx.has_value()) {
-            return std::nullopt;
-        }
+    if (rx_value.has_value() && !rx.has_value()) {
+        return std::nullopt;
     }
 
-    std::optional<double> ry;
+    const auto ry = parse_optional_double_attribute(node, "ry");
     const auto ry_value = find_attribute_value(node, "ry");
-    if (ry_value.has_value()) {
-        ry = parse_double(*ry_value);
-        if (!ry.has_value()) {
-            return std::nullopt;
-        }
+    if (ry_value.has_value() && !ry.has_value()) {
+        return std::nullopt;
     }
 
     SvgShape shape;
@@ -179,6 +170,16 @@ std::optional<double> SvgShapeInterpreter::parse_double(std::string_view value) 
 }
 
 std::optional<double> SvgShapeInterpreter::require_parsed_double_attribute(
+    const ExtractedNode& node,
+    std::string_view attribute_name) {
+    const auto value = find_attribute_value(node, attribute_name);
+    if (!value.has_value()) {
+        return std::nullopt;
+    }
+    return parse_double(*value);
+}
+
+std::optional<double> SvgShapeInterpreter::parse_optional_double_attribute(
     const ExtractedNode& node,
     std::string_view attribute_name) {
     const auto value = find_attribute_value(node, attribute_name);

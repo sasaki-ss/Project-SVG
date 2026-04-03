@@ -31,6 +31,10 @@ public:
         const parser::ExtractedNode& node,
         std::string_view attribute_name);
 
+    static std::optional<double> parse_optional_double_attribute(
+        const parser::ExtractedNode& node,
+        std::string_view attribute_name);
+
     static std::vector<std::string_view> split_by_space(std::string_view value);
 
 private:
