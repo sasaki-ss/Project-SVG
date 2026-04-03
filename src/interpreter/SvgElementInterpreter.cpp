@@ -3,7 +3,7 @@
 #include <array>
 #include <charconv>
 
-#include "../parser/ExtractedNode.h"
+#include "parser/ExtractedNode.h"
 
 namespace svg{
 namespace interpreter{
