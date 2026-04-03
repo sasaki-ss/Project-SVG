@@ -38,6 +38,16 @@ private:
 
     static std::optional<SvgElementType> interpret_element_type(
         std::string_view element_name);
+
+    static std::optional<SvgShape> interpret_path(const parser::ExtractedNode& node);
+
+    static std::optional<SvgShape> interpret_circle(const parser::ExtractedNode& node);
+
+    static std::optional<SvgShape> interpret_rect(const parser::ExtractedNode& node);
+
+    static std::optional<SvgShape> interpret_line(const parser::ExtractedNode& node);
+
+    static std::optional<SvgShape> interpret_ellipse(const parser::ExtractedNode& node);
 };
 
 }
