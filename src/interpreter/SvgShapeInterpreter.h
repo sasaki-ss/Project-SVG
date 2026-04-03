@@ -40,6 +40,10 @@ public:
 private:
     SvgShapeInterpreter() = delete;
 
+    static std::vector<std::string_view> split_by_delimiter(
+        std::string_view value,
+        char delimiter);
+
     static std::optional<SvgElementType> interpret_element_type(
         std::string_view element_name);
 

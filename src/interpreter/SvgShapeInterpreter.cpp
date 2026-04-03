@@ -232,12 +232,18 @@ std::optional<std::optional<double>> SvgShapeInterpreter::parse_optional_double_
 }
 
 std::vector<std::string_view> SvgShapeInterpreter::split_by_space(std::string_view value) {
+    return split_by_delimiter(value, ' ');
+}
+
+std::vector<std::string_view> SvgShapeInterpreter::split_by_delimiter(
+    std::string_view value,
+    char delimiter) {
     std::vector<std::string_view> tokens;
     std::size_t position = 0;
     const auto value_size = value.size();
 
     while (position < value_size) {
-        while (position < value_size && value[position] == ' ') {
+        while (position < value_size && value[position] == delimiter) {
             ++position;
         }
 
@@ -245,7 +251,7 @@ std::vector<std::string_view> SvgShapeInterpreter::split_by_space(std::string_vi
             break;
         }
 
-        const auto next_delimiter = value.find(' ', position);
+        const auto next_delimiter = value.find(delimiter, position);
         if (next_delimiter == std::string_view::npos) {
             tokens.push_back(value.substr(position));
             break;
@@ -263,38 +269,14 @@ std::optional<std::vector<Point>> SvgShapeInterpreter::parse_points(std::string_
     std::vector<double> parsed_values;
 
     for (const auto token : tokens) {
-        std::size_t position = 0;
-        const auto token_size = token.size();
-
-        while (position < token_size) {
-            const auto comma_position = token.find(',', position);
-            if (comma_position == std::string_view::npos) {
-                const auto number_text = token.substr(position);
-                if (number_text.empty()) {
-                    return std::nullopt;
-                }
-
-                const auto parsed_number = parse_double(number_text);
-                if (!parsed_number.has_value()) {
-                    return std::nullopt;
-                }
-
-                parsed_values.push_back(*parsed_number);
-                break;
-            }
-
-            const auto number_text = token.substr(position, comma_position - position);
-            if (number_text.empty()) {
-                return std::nullopt;
-            }
-
+        const auto comma_separated_values = split_by_delimiter(token, ',');
+        for (const auto number_text : comma_separated_values) {
             const auto parsed_number = parse_double(number_text);
             if (!parsed_number.has_value()) {
                 return std::nullopt;
             }
 
             parsed_values.push_back(*parsed_number);
-            position = comma_position + 1;
         }
     }
 
