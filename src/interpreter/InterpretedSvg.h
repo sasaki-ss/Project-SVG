@@ -104,6 +104,8 @@ struct SvgShape {
 
 struct InterpretedSvg {
     SvgViewBox view_box;
+    double width;
+    double height;
     SvgRootStyle root_style;
     std::vector<SvgShape> shapes;
 };
