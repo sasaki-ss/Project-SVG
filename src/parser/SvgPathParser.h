@@ -18,7 +18,6 @@ public:
 private:
     auto tokenize_path(const std::string& d) -> std::vector<std::string>;
     auto parse_command_type(const std::string& token) -> std::optional<PathCommandType>;
-    bool is_absolute(const std::string& token);
 };
 
 }

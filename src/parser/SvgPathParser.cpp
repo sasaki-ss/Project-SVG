@@ -1,7 +1,23 @@
 #include "SvgPathParser.h"
 
+#include <cctype>
+#include <unordered_map>
+
 namespace svg{
 namespace parser{
+
+static const std::unordered_map<char, PathCommandType> PATH_COMMAND_TYPE = {
+    {'M', PathCommandType::MoveTo},
+    {'L', PathCommandType::LineTo},
+    {'H', PathCommandType::HorizontalTo},
+    {'V', PathCommandType::VerticalTo},
+    {'C', PathCommandType::CubicBezierTo},
+    {'Z', PathCommandType::ClosePath},
+    {'S', PathCommandType::SmoothCubicBezierTo},
+    {'Q', PathCommandType::QuadraticBezierTo},
+    {'T', PathCommandType::SmoothQuadraticBezierTo},
+    {'A', PathCommandType::ArcTo},
+};
 
 auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<PathCommand>> {
     std::vector<PathCommand> path_commands;
@@ -29,7 +45,7 @@ auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<Pat
 
         PathCommand command;
         command.type = *command_type;
-        command.is_absolute = is_absolute(token);
+        command.is_absolute = std::isupper(static_cast<unsigned char>(token.at(0)));
         current_command = std::move(command);
     }
 
@@ -47,13 +63,17 @@ auto SvgPathParser::tokenize_path(const std::string& d) -> std::vector<std::stri
 }
 
 auto SvgPathParser::parse_command_type(const std::string& token) -> std::optional<PathCommandType>{
-    PathCommandType type;
+    if(token.length() != 1){
+        return std::nullopt;
+    }
 
-    return type;
-}
-
-bool SvgPathParser::is_absolute(const std::string& token){
-    return true;
+    char command = std::toupper(static_cast<unsigned char>(token.at(0)));
+    auto it = PATH_COMMAND_TYPE.find(command);
+    if(it != PATH_COMMAND_TYPE.end()){
+        return it->second;
+    }
+    
+    return std::nullopt;
 }
 
 }
