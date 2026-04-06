@@ -22,7 +22,7 @@ enum class PathCommandType {
 struct PathCommand {
     PathCommandType type;
     bool is_absolute;
-    std::vector<double> parameters;
+    std::vector<std::string> parameters;
 };
 
 }
