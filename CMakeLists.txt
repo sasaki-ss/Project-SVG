@@ -55,6 +55,7 @@ if (BUILD_TESTING)
         target_link_libraries(project_svg_parser_tests
             PRIVATE
                 project_svg
+                gtest_main
         )
 
         target_include_directories(project_svg_parser_tests
