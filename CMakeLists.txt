@@ -34,7 +34,11 @@ endif()
 include(CTest)
 
 if (BUILD_TESTING)
-    add_subdirectory(third_party/googletest)
+    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/googletest/CMakeLists.txt")
+        add_subdirectory(third_party/googletest)
+    else()
+        message(STATUS "GoogleTest submodule is not initialized at third_party/googletest; skipping GoogleTest integration.")
+    endif()
 
     file(GLOB PROJECT_SVG_PARSER_TEST_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/parser/*.cpp"
