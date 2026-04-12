@@ -34,6 +34,12 @@ endif()
 include(CTest)
 
 if (BUILD_TESTING)
+    if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/googletest/CMakeLists.txt")
+        message(FATAL_ERROR "BUILD_TESTING=ON requires the GoogleTest submodule at third_party/googletest. Please run: git submodule update --init --recursive")
+    endif()
+
+    add_subdirectory(third_party/googletest)
+
     file(GLOB PROJECT_SVG_PARSER_TEST_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/parser/*.cpp"
     )
