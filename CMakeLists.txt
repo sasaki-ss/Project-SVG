@@ -34,6 +34,8 @@ endif()
 include(CTest)
 
 if (BUILD_TESTING)
+    add_subdirectory(third_party/googletest)
+
     file(GLOB PROJECT_SVG_PARSER_TEST_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/parser/*.cpp"
     )
