@@ -93,7 +93,7 @@ TEST(XmlNodeExtractorTest, test_normal_4) {
     expect_attribute(path_node, 0, "d", "M1 1");
 }
 
-TEST(XmlNodeExtractorTest, test_normal_5) {
+TEST(XmlNodeExtractorTest, test_boundary_1) {
     constexpr std::string_view xml_content =
         R"(<?xml version="1.0" encoding="UTF-8"?>
 <svg><g/></svg>)";
@@ -107,7 +107,7 @@ TEST(XmlNodeExtractorTest, test_normal_5) {
     EXPECT_EQ(extracted->children[0].element_name, "g");
 }
 
-TEST(XmlNodeExtractorTest, test_normal_6) {
+TEST(XmlNodeExtractorTest, test_boundary_2) {
     constexpr std::string_view xml_content =
         R"(<!-- document comment -->
 <svg><!-- child comment --><g id="layer"/><!-- trailing child comment --></svg>
@@ -125,7 +125,7 @@ TEST(XmlNodeExtractorTest, test_normal_6) {
     expect_attribute(child, 0, "id", "layer");
 }
 
-TEST(XmlNodeExtractorTest, test_normal_7) {
+TEST(XmlNodeExtractorTest, test_boundary_3) {
     constexpr std::string_view xml_content =
         R"(<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg><rect/></svg>)";
@@ -138,7 +138,7 @@ TEST(XmlNodeExtractorTest, test_normal_7) {
     EXPECT_EQ(extracted->children[0].element_name, "rect");
 }
 
-TEST(XmlNodeExtractorTest, test_normal_8) {
+TEST(XmlNodeExtractorTest, test_boundary_4) {
     constexpr std::string_view xml_content =
         R"(<svg>
   before
