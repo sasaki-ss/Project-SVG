@@ -18,6 +18,9 @@ public:
 private:
     auto tokenize_path(const std::string& d) -> std::vector<std::string>;
     auto parse_command_type(const std::string& token) -> std::optional<PathCommandType>;
+    bool is_command(char c);
+    bool is_parameter(char c);
+    std::string read_parameter(const std::string& d, int& index);
 };
 
 }
