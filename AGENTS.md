@@ -28,11 +28,16 @@ Project SVG は、SVGファイルを入力として受け取り、RGBAバッフ�
 #### テストコードを実装する場合
 - `docs/test_coding_guidelines.md`
 
-## PR/コミット時のルール
-- PR本文は `.github/PULL_REQUEST_TEMPLATE.md` に沿って作成すること
-- PRタイトルは日本語で出力すること
-- PR本文は日本語で出力すること
-- コミットメッセージは日本語で出力すること
+## PRのルール
+- PR本文は `.github/PULL_REQUEST_TEMPLATE.md` のフォーマットに埋め込む形で出力すること。
+- PRタイトルは`docs/commit_guidelines.md`を準拠して出力すること。
+- PR本文内の見出しは `.github/PULL_REQUEST_TEMPLATE.md` を準拠すること。
+- PR本文は日本語で出力すること。
+- PRタイトルは日本語で出力すること。
+
+## コミット時のルール
+- コミットメッセージは`docs/commit_guidelines.md`を準拠して出力すること。
+- コミットメッセージは日本語で出力すること。
 
 ## 実装ルール
 - C++17 準拠
