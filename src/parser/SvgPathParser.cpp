@@ -22,15 +22,15 @@ static const std::unordered_map<char, PathCommandType> PATH_COMMAND_TYPE = {
 auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<PathCommand>> {
     std::vector<PathCommand> path_commands;
 
-    std::vector<std::string> tokens = tokenize_path(d);
-    if(tokens.empty()) {
+    auto tokens = tokenize_path(d);
+    if(!tokens.has_value() || tokens->empty()) {
         return std::nullopt;
     }
 
     std::optional<PathCommand> current_command;
-    for(const auto& token : tokens) {
+    for(const auto& token : *tokens) {
         std::optional<PathCommandType> command_type = parse_command_type(token);
-        if(command_type == std::nullopt) {
+        if(!command_type.has_value()) {
             if(!current_command.has_value()) {
                 return std::nullopt;
             }
@@ -56,13 +56,13 @@ auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<Pat
     return path_commands;
 }
 
-auto SvgPathParser::tokenize_path(const std::string& d) -> std::vector<std::string> {
+auto SvgPathParser::tokenize_path(const std::string& d) -> std::optional<std::vector<std::string>> {
     std::vector<std::string> token;
     int i = 0;
-    int length = d.length();
+    int length = static_cast<int>(d.length());
     while(i < length) {
         char c = d.at(i);
-        if(std::isspace(static_cast<unsigned char>(c)) != 0 || c == ',') {
+        if(is_separator(c)) {
             ++i;
             continue;
         }
@@ -74,11 +74,16 @@ auto SvgPathParser::tokenize_path(const std::string& d) -> std::vector<std::stri
         }
 
         if(is_parameter(c)) {
-            token.emplace_back(read_parameter(d, i));
+            auto parameter = read_parameter(d, i);
+            if(!parameter.has_value()) {
+                return std::nullopt;
+            }
+
+            token.emplace_back(*parameter);
             continue;
         }
 
-        return std::vector<std::string>();
+        return std::nullopt;
     }
 
     return token;
@@ -107,8 +112,47 @@ bool SvgPathParser::is_parameter(char c) {
     return std::isdigit(static_cast<unsigned char>(c)) || c == '-' || c == '.';
 }
 
-std::string SvgPathParser::read_parameter(const std::string& d, int& index) {
-    return "";
+bool SvgPathParser::is_separator(char c) {
+    return std::isspace(static_cast<unsigned char>(c)) != 0 || c == ',';
+}
+
+auto SvgPathParser::read_parameter(const std::string& d, int& index) -> std::optional<std::string> {
+    std::string parameter;
+    int start_pos = index;
+
+    int size = static_cast<int>(d.size());
+    if(start_pos >= size) {
+        return std::nullopt;
+    }
+
+    char start_char = d.at(start_pos);
+    bool has_dot = start_char == '.' ? true : false;
+    parameter.push_back(start_char);
+    
+    for(int i = start_pos + 1; i < size; ++i) {
+        char c = d.at(i);
+
+        if(is_separator(c) || is_command(c) || c == '-') {
+            index = i;
+            return parameter;
+        }
+
+        if(c == '.') {
+            if(!has_dot) {
+                parameter.push_back(c);
+                has_dot = true;
+                continue;
+            }
+
+            index = i;
+            return parameter;
+        }
+
+        parameter.push_back(c);
+    }
+
+    index = size;
+    return parameter;
 }
 
 }
