@@ -84,6 +84,11 @@ if (BUILD_TESTING)
             ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter/SvgInterpreterUtility.cpp
         )
 
+        target_link_libraries(project_svg_interpreter_tests
+            PRIVATE
+                gtest_main
+        )
+
         target_include_directories(project_svg_interpreter_tests
             PRIVATE
                 ${CMAKE_CURRENT_SOURCE_DIR}/src
