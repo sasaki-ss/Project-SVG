@@ -19,6 +19,17 @@ static const std::unordered_map<char, PathCommandType> PATH_COMMAND_TYPE = {
     {'A', PathCommandType::ArcTo},
 };
 
+static const int PARAMETER_SIZE_M = 2;
+static const int PARAMETER_SIZE_L = 2;
+static const int PARAMETER_SIZE_H = 1;
+static const int PARAMETER_SIZE_V = 1;
+static const int PARAMETER_SIZE_C = 6;
+static const int PARAMETER_SIZE_Z = 0;
+static const int PARAMETER_SIZE_S = 4;
+static const int PARAMETER_SIZE_Q = 4;
+static const int PARAMETER_SIZE_T = 2;
+static const int PARAMETER_SIZE_A = 7;
+
 auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<PathCommand>> {
     std::vector<PathCommand> path_commands;
 
@@ -166,25 +177,25 @@ bool SvgPathParser::validate_command(const PathCommand& command){
     int parameter_size = static_cast<int>(command.parameters.size());
     switch(command.type){
     case PathCommandType::MoveTo:
-        return parameter_size >= 2 && parameter_size % 2 == 0;
+        return parameter_size >= PARAMETER_SIZE_M && parameter_size % PARAMETER_SIZE_M == 0;
     case PathCommandType::LineTo:
-        return parameter_size >= 2 && parameter_size % 2 == 0;
+        return parameter_size >= PARAMETER_SIZE_L && parameter_size % PARAMETER_SIZE_L == 0;
     case PathCommandType::HorizontalTo:
-        return parameter_size >= 1;
+        return parameter_size >= PARAMETER_SIZE_H;
     case PathCommandType::VerticalTo:
-        return parameter_size >= 1;
+        return parameter_size >= PARAMETER_SIZE_V;
     case PathCommandType::CubicBezierTo:
-        return parameter_size >= 6 && parameter_size % 6 == 0;
+        return parameter_size >= PARAMETER_SIZE_C && parameter_size % PARAMETER_SIZE_C == 0;
     case PathCommandType::ClosePath:
-        return parameter_size == 0;
+        return parameter_size == PARAMETER_SIZE_Z;
     case PathCommandType::SmoothCubicBezierTo:
-        return parameter_size >= 4 && parameter_size % 4 == 0;
+        return parameter_size >= PARAMETER_SIZE_S && parameter_size % PARAMETER_SIZE_S == 0;
     case PathCommandType::QuadraticBezierTo:
-        return parameter_size >= 4 && parameter_size % 4 == 0;
+        return parameter_size >= PARAMETER_SIZE_Q && parameter_size % PARAMETER_SIZE_Q == 0;
     case PathCommandType::SmoothQuadraticBezierTo:
-        return parameter_size >= 2 && parameter_size % 2 == 0;
+        return parameter_size >= PARAMETER_SIZE_T && parameter_size % PARAMETER_SIZE_T == 0;
     case PathCommandType::ArcTo:
-        return parameter_size >= 7 && parameter_size % 7 == 0;
+        return parameter_size >= PARAMETER_SIZE_A && parameter_size % PARAMETER_SIZE_A == 0;
     }
     return false;
 }
