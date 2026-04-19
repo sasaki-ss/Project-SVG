@@ -16,12 +16,14 @@ public:
 
     auto parse(const std::string& d) -> std::optional<std::vector<PathCommand>>;
 private:
-    auto tokenize_path(const std::string& d) -> std::optional<std::vector<std::string>>;
-    auto parse_command_type(const std::string& token) -> std::optional<PathCommandType>;
     bool is_command(char c);
     bool is_parameter(char c);
     bool is_separator(char c);
+
+    auto tokenize_path(const std::string& d) -> std::optional<std::vector<std::string>>;
+    auto parse_command_type(const std::string& token) -> std::optional<PathCommandType>;
     auto read_parameter(const std::string& d, int& index) -> std::optional<std::string>;
+    bool validate_command(const PathCommand& command);
 };
 
 }

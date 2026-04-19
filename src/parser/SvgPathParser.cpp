@@ -40,6 +40,10 @@ auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<Pat
         }
 
         if(current_command.has_value()) {
+            if(!validate_command(*current_command)){
+                return std::nullopt;
+            }
+
             path_commands.emplace_back(std::move(*current_command));
         }
 
@@ -50,10 +54,26 @@ auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<Pat
     }
 
     if(current_command.has_value()) {
+        if(!validate_command(*current_command)){
+            return std::nullopt;
+        }
         path_commands.emplace_back(std::move(*current_command));
     }
 
     return path_commands;
+}
+
+bool SvgPathParser::is_command(char c) {
+    char command = std::toupper(static_cast<unsigned char>(c));
+    return PATH_COMMAND_TYPE.find(command) != PATH_COMMAND_TYPE.end();
+}
+
+bool SvgPathParser::is_parameter(char c) {
+    return std::isdigit(static_cast<unsigned char>(c)) || c == '-' || c == '.';
+}
+
+bool SvgPathParser::is_separator(char c) {
+    return std::isspace(static_cast<unsigned char>(c)) != 0 || c == ',';
 }
 
 auto SvgPathParser::tokenize_path(const std::string& d) -> std::optional<std::vector<std::string>> {
@@ -103,19 +123,6 @@ auto SvgPathParser::parse_command_type(const std::string& token) -> std::optiona
     return std::nullopt;
 }
 
-bool SvgPathParser::is_command(char c) {
-    char command = std::toupper(static_cast<unsigned char>(c));
-    return PATH_COMMAND_TYPE.find(command) != PATH_COMMAND_TYPE.end();
-}
-
-bool SvgPathParser::is_parameter(char c) {
-    return std::isdigit(static_cast<unsigned char>(c)) || c == '-' || c == '.';
-}
-
-bool SvgPathParser::is_separator(char c) {
-    return std::isspace(static_cast<unsigned char>(c)) != 0 || c == ',';
-}
-
 auto SvgPathParser::read_parameter(const std::string& d, int& index) -> std::optional<std::string> {
     std::string parameter;
     int start_pos = index;
@@ -153,6 +160,33 @@ auto SvgPathParser::read_parameter(const std::string& d, int& index) -> std::opt
 
     index = size;
     return parameter;
+}
+
+bool SvgPathParser::validate_command(const PathCommand& command){
+    int parameter_size = static_cast<int>(command.parameters.size());
+    switch(command.type){
+    case PathCommandType::MoveTo:
+        return parameter_size >= 2 && parameter_size % 2 == 0;
+    case PathCommandType::LineTo:
+        return parameter_size >= 2 && parameter_size % 2 == 0;
+    case PathCommandType::HorizontalTo:
+        return parameter_size >= 1;
+    case PathCommandType::VerticalTo:
+        return parameter_size >= 1;
+    case PathCommandType::CubicBezierTo:
+        return parameter_size >= 6 && parameter_size % 6 == 0;
+    case PathCommandType::ClosePath:
+        return parameter_size == 0;
+    case PathCommandType::SmoothCubicBezierTo:
+        return parameter_size >= 4 && parameter_size % 4 == 0;
+    case PathCommandType::QuadraticBezierTo:
+        return parameter_size >= 4 && parameter_size % 4 == 0;
+    case PathCommandType::SmoothQuadraticBezierTo:
+        return parameter_size >= 2 && parameter_size % 2 == 0;
+    case PathCommandType::ArcTo:
+        return parameter_size >= 7 && parameter_size % 7 == 0;
+    }
+    return false;
 }
 
 }
