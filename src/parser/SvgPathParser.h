@@ -12,8 +12,6 @@ namespace parser{
 
 class SvgPathParser {
 public:
-    explicit SvgPathParser(std::string_view xml_content);
-
     auto parse(const std::string& d) -> std::optional<std::vector<PathCommand>>;
 private:
     bool is_command(char c);
