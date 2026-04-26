@@ -168,7 +168,7 @@ auto SvgPathInterpreter::interpret_horizontal_to(
         }
 
         double x = *parsed_x;
-        double y = context.current_point.y;
+        const double y = context.current_point.y;
         if (!command.is_absolute) {
             x = context.current_point.x + *parsed_x;
         }
@@ -203,7 +203,7 @@ auto SvgPathInterpreter::interpret_vertical_to(
             return std::nullopt;
         }
 
-        double x = context.current_point.x;
+        const double x = context.current_point.x;
         double y = *parsed_y;
         if (!command.is_absolute) {
             y = context.current_point.y + *parsed_y;
