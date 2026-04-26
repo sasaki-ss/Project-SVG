@@ -144,7 +144,6 @@ auto SvgPathInterpreter::interpret_line_to(
         instructions.push_back(line_to_instruction);
 
         context.current_point = absolute_point;
-        context.has_current_point = true;
     }
 
     return instructions;
