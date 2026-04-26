@@ -152,15 +152,69 @@ auto SvgPathInterpreter::interpret_line_to(
 auto SvgPathInterpreter::interpret_horizontal_to(
     const PathCommand& command)
     -> std::optional<std::vector<PathInstruction>> {
-    (void)command;
-    return std::nullopt;
+    if (!context.has_current_point) {
+        return std::nullopt;
+    }
+
+    if (command.parameters.empty()) {
+        return std::nullopt;
+    }
+
+    std::vector<PathInstruction> instructions;
+    for (const auto& parameter : command.parameters) {
+        const auto parsed_x = SvgInterpreterUtility::parse_double(parameter);
+        if (!parsed_x.has_value()) {
+            return std::nullopt;
+        }
+
+        const double x = command.is_absolute
+            ? *parsed_x
+            : context.current_point.x + *parsed_x;
+        const Point point{x, context.current_point.y};
+
+        PathInstruction line_to_instruction;
+        line_to_instruction.type = PathInstructionType::LineTo;
+        line_to_instruction.points.push_back(point);
+        instructions.push_back(line_to_instruction);
+
+        context.current_point = point;
+    }
+
+    return instructions;
 }
 
 auto SvgPathInterpreter::interpret_vertical_to(
     const PathCommand& command)
     -> std::optional<std::vector<PathInstruction>> {
-    (void)command;
-    return std::nullopt;
+    if (!context.has_current_point) {
+        return std::nullopt;
+    }
+
+    if (command.parameters.empty()) {
+        return std::nullopt;
+    }
+
+    std::vector<PathInstruction> instructions;
+    for (const auto& parameter : command.parameters) {
+        const auto parsed_y = SvgInterpreterUtility::parse_double(parameter);
+        if (!parsed_y.has_value()) {
+            return std::nullopt;
+        }
+
+        const double y = command.is_absolute
+            ? *parsed_y
+            : context.current_point.y + *parsed_y;
+        const Point point{context.current_point.x, y};
+
+        PathInstruction line_to_instruction;
+        line_to_instruction.type = PathInstructionType::LineTo;
+        line_to_instruction.points.push_back(point);
+        instructions.push_back(line_to_instruction);
+
+        context.current_point = point;
+    }
+
+    return instructions;
 }
 
 auto SvgPathInterpreter::interpret_cubic_bezier_to(
