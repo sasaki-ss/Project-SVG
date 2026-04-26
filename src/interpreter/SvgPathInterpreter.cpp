@@ -167,10 +167,14 @@ auto SvgPathInterpreter::interpret_horizontal_to(
             return std::nullopt;
         }
 
-        const double x = command.is_absolute
-            ? *parsed_x
-            : context.current_point.x + *parsed_x;
-        const Point point{x, context.current_point.y};
+        double x = 0.0;
+        double y = context.current_point.y;
+        if (command.is_absolute) {
+            x = *parsed_x;
+        } else {
+            x = context.current_point.x + *parsed_x;
+        }
+        const Point point{x, y};
 
         PathInstruction line_to_instruction;
         line_to_instruction.type = PathInstructionType::LineTo;
@@ -201,10 +205,14 @@ auto SvgPathInterpreter::interpret_vertical_to(
             return std::nullopt;
         }
 
-        const double y = command.is_absolute
-            ? *parsed_y
-            : context.current_point.y + *parsed_y;
-        const Point point{context.current_point.x, y};
+        double x = context.current_point.x;
+        double y = 0.0;
+        if (command.is_absolute) {
+            y = *parsed_y;
+        } else {
+            y = context.current_point.y + *parsed_y;
+        }
+        const Point point{x, y};
 
         PathInstruction line_to_instruction;
         line_to_instruction.type = PathInstructionType::LineTo;
