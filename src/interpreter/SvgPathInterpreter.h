@@ -14,30 +14,41 @@ class SvgPathInterpreter {
 public:
     SvgPathInterpreter() = default;
 
-    std::optional<std::vector<PathInstruction>> interpret(
-        const std::vector<parser::PathCommand>& commands);
+    auto interpret(
+        const std::vector<parser::PathCommand>& commands)
+        -> std::optional<std::vector<PathInstruction>>;
 
 private:
-    std::optional<std::vector<PathInstruction>> interpret_move_to(
-        const parser::PathCommand& command);
-    std::optional<std::vector<PathInstruction>> interpret_line_to(
-        const parser::PathCommand& command);
-    std::optional<std::vector<PathInstruction>> interpret_horizontal_to(
-        const parser::PathCommand& command);
-    std::optional<std::vector<PathInstruction>> interpret_vertical_to(
-        const parser::PathCommand& command);
-    std::optional<std::vector<PathInstruction>> interpret_cubic_bezier_to(
-        const parser::PathCommand& command);
-    std::optional<std::vector<PathInstruction>> interpret_close_path(
-        const parser::PathCommand& command);
-    std::optional<std::vector<PathInstruction>> interpret_smooth_cubic_bezier_to(
-        const parser::PathCommand& command);
-    std::optional<std::vector<PathInstruction>> interpret_quadratic_bezier_to(
-        const parser::PathCommand& command);
-    std::optional<std::vector<PathInstruction>> interpret_smooth_quadratic_bezier_to(
-        const parser::PathCommand& command);
-    std::optional<std::vector<PathInstruction>> interpret_arc_to(
-        const parser::PathCommand& command);
+    auto interpret_move_to(
+        const parser::PathCommand& command)
+        -> std::optional<std::vector<PathInstruction>>;
+    auto interpret_line_to(
+        const parser::PathCommand& command)
+        -> std::optional<std::vector<PathInstruction>>;
+    auto interpret_horizontal_to(
+        const parser::PathCommand& command)
+        -> std::optional<std::vector<PathInstruction>>;
+    auto interpret_vertical_to(
+        const parser::PathCommand& command)
+        -> std::optional<std::vector<PathInstruction>>;
+    auto interpret_cubic_bezier_to(
+        const parser::PathCommand& command)
+        -> std::optional<std::vector<PathInstruction>>;
+    auto interpret_close_path(
+        const parser::PathCommand& command)
+        -> std::optional<std::vector<PathInstruction>>;
+    auto interpret_smooth_cubic_bezier_to(
+        const parser::PathCommand& command)
+        -> std::optional<std::vector<PathInstruction>>;
+    auto interpret_quadratic_bezier_to(
+        const parser::PathCommand& command)
+        -> std::optional<std::vector<PathInstruction>>;
+    auto interpret_smooth_quadratic_bezier_to(
+        const parser::PathCommand& command)
+        -> std::optional<std::vector<PathInstruction>>;
+    auto interpret_arc_to(
+        const parser::PathCommand& command)
+        -> std::optional<std::vector<PathInstruction>>;
 };
 
 }
