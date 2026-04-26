@@ -12,31 +12,31 @@ namespace interpreter{
 
 class SvgPathInterpreter {
 public:
-    static std::optional<std::vector<PathInstruction>> interpret(
+    SvgPathInterpreter() = default;
+
+    std::optional<std::vector<PathInstruction>> interpret(
         const std::vector<parser::PathCommand>& commands);
 
 private:
-    SvgPathInterpreter() = delete;
-
-    static std::optional<std::vector<PathInstruction>> interpret_move_to(
+    std::optional<std::vector<PathInstruction>> interpret_move_to(
         const parser::PathCommand& command);
-    static std::optional<std::vector<PathInstruction>> interpret_line_to(
+    std::optional<std::vector<PathInstruction>> interpret_line_to(
         const parser::PathCommand& command);
-    static std::optional<std::vector<PathInstruction>> interpret_horizontal_to(
+    std::optional<std::vector<PathInstruction>> interpret_horizontal_to(
         const parser::PathCommand& command);
-    static std::optional<std::vector<PathInstruction>> interpret_vertical_to(
+    std::optional<std::vector<PathInstruction>> interpret_vertical_to(
         const parser::PathCommand& command);
-    static std::optional<std::vector<PathInstruction>> interpret_cubic_bezier_to(
+    std::optional<std::vector<PathInstruction>> interpret_cubic_bezier_to(
         const parser::PathCommand& command);
-    static std::optional<std::vector<PathInstruction>> interpret_close_path(
+    std::optional<std::vector<PathInstruction>> interpret_close_path(
         const parser::PathCommand& command);
-    static std::optional<std::vector<PathInstruction>> interpret_smooth_cubic_bezier_to(
+    std::optional<std::vector<PathInstruction>> interpret_smooth_cubic_bezier_to(
         const parser::PathCommand& command);
-    static std::optional<std::vector<PathInstruction>> interpret_quadratic_bezier_to(
+    std::optional<std::vector<PathInstruction>> interpret_quadratic_bezier_to(
         const parser::PathCommand& command);
-    static std::optional<std::vector<PathInstruction>> interpret_smooth_quadratic_bezier_to(
+    std::optional<std::vector<PathInstruction>> interpret_smooth_quadratic_bezier_to(
         const parser::PathCommand& command);
-    static std::optional<std::vector<PathInstruction>> interpret_arc_to(
+    std::optional<std::vector<PathInstruction>> interpret_arc_to(
         const parser::PathCommand& command);
 };
 
