@@ -1,5 +1,7 @@
 #include "SvgPathInterpreter.h"
 
+#include "SvgInterpreterUtility.h"
+
 namespace svg{
 namespace interpreter{
 
@@ -12,6 +14,8 @@ auto SvgPathInterpreter::interpret(
     if (commands.empty()) {
         return std::nullopt;
     }
+
+    context = InterpretContext{};
 
     std::vector<PathInstruction> instructions;
     for (const auto& command : commands) {
@@ -65,14 +69,53 @@ auto SvgPathInterpreter::interpret(
 auto SvgPathInterpreter::interpret_move_to(
     const PathCommand& command)
     -> std::optional<std::vector<PathInstruction>> {
-    (void)command;
-    return std::nullopt;
+    constexpr std::size_t MOVE_TO_PARAMETER_PAIR_SIZE = 2;
+    const std::size_t parameter_size = command.parameters.size();
+    if (parameter_size < MOVE_TO_PARAMETER_PAIR_SIZE
+        || parameter_size % MOVE_TO_PARAMETER_PAIR_SIZE != 0) {
+        return std::nullopt;
+    }
+
+    const auto parsed_point = parse_point(command, 0);
+    if (!parsed_point.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto absolute_point = make_absolute_point(*parsed_point, command.is_absolute);
+
+    std::vector<PathInstruction> instructions;
+    PathInstruction move_to_instruction;
+    move_to_instruction.type = PathInstructionType::MoveTo;
+    move_to_instruction.points.push_back(absolute_point);
+    instructions.push_back(move_to_instruction);
+
+    context.current_point = absolute_point;
+    context.has_current_point = true;
+    context.subpath_start_point = absolute_point;
+    context.has_subpath_start_point = true;
+
+    if (parameter_size == MOVE_TO_PARAMETER_PAIR_SIZE) {
+        return instructions;
+    }
+
+    // M/m の2組目以降は SVG 仕様上 LineTo として扱う。
+    const auto line_instructions = interpret_line_to(command, MOVE_TO_PARAMETER_PAIR_SIZE);
+    if (!line_instructions.has_value()) {
+        return std::nullopt;
+    }
+
+    instructions.insert(
+        instructions.end(), line_instructions->begin(), line_instructions->end());
+
+    return instructions;
 }
 
 auto SvgPathInterpreter::interpret_line_to(
-    const PathCommand& command)
+    const PathCommand& command,
+    std::size_t start_index)
     -> std::optional<std::vector<PathInstruction>> {
     (void)command;
+    (void)start_index;
     return std::nullopt;
 }
 
@@ -130,6 +173,41 @@ auto SvgPathInterpreter::interpret_arc_to(
     -> std::optional<std::vector<PathInstruction>> {
     (void)command;
     return std::nullopt;
+}
+
+auto SvgPathInterpreter::parse_point(
+    const PathCommand& command,
+    std::size_t index)
+    -> std::optional<Point> {
+    if (index + 1 >= command.parameters.size()) {
+        return std::nullopt;
+    }
+
+    const auto x = SvgInterpreterUtility::parse_double(command.parameters[index]);
+    if (!x.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto y = SvgInterpreterUtility::parse_double(command.parameters[index + 1]);
+    if (!y.has_value()) {
+        return std::nullopt;
+    }
+
+    return Point{*x, *y};
+}
+
+auto SvgPathInterpreter::make_absolute_point(
+    const Point& point,
+    bool is_absolute)
+    -> Point {
+    if (is_absolute) {
+        return point;
+    }
+
+    return Point{
+        context.current_point.x + point.x,
+        context.current_point.y + point.y,
+    };
 }
 
 }
