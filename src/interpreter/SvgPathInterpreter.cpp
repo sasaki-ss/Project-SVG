@@ -1,4 +1,4 @@
-#include "SvgPathInterpreter.h"
+﻿#include "SvgPathInterpreter.h"
 
 #include "SvgInterpreterUtility.h"
 
@@ -98,7 +98,7 @@ auto SvgPathInterpreter::interpret_move_to(
         return instructions;
     }
 
-    // M/m の2組目以降は SVG 仕様上 LineTo として扱う。
+    // M/m parameters after the first pair are interpreted as LineTo.
     const auto line_instructions = interpret_line_to(command, MOVE_TO_PARAMETER_PAIR_SIZE);
     if (!line_instructions.has_value()) {
         return std::nullopt;
@@ -114,9 +114,40 @@ auto SvgPathInterpreter::interpret_line_to(
     const PathCommand& command,
     std::size_t start_index)
     -> std::optional<std::vector<PathInstruction>> {
-    (void)command;
-    (void)start_index;
-    return std::nullopt;
+    constexpr std::size_t LINE_TO_PARAMETER_PAIR_SIZE = 2;
+    const std::size_t parameter_size = command.parameters.size();
+    if (!context.has_current_point) {
+        return std::nullopt;
+    }
+
+    if (start_index >= parameter_size) {
+        return std::nullopt;
+    }
+
+    const std::size_t remaining_parameter_size = parameter_size - start_index;
+    if (remaining_parameter_size % LINE_TO_PARAMETER_PAIR_SIZE != 0) {
+        return std::nullopt;
+    }
+
+    std::vector<PathInstruction> instructions;
+    for (std::size_t index = start_index; index < parameter_size; index += LINE_TO_PARAMETER_PAIR_SIZE) {
+        const auto parsed_point = parse_point(command, index);
+        if (!parsed_point.has_value()) {
+            return std::nullopt;
+        }
+
+        const auto absolute_point = make_absolute_point(*parsed_point, command.is_absolute);
+
+        PathInstruction line_to_instruction;
+        line_to_instruction.type = PathInstructionType::LineTo;
+        line_to_instruction.points.push_back(absolute_point);
+        instructions.push_back(line_to_instruction);
+
+        context.current_point = absolute_point;
+        context.has_current_point = true;
+    }
+
+    return instructions;
 }
 
 auto SvgPathInterpreter::interpret_horizontal_to(
