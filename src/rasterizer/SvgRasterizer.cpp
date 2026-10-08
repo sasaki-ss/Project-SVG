@@ -78,10 +78,12 @@ auto SvgRasterizer::make_transform(
     const double content_height = view_box.height * scale;
     Transform transform;
     transform.scale = scale;
-    transform.offset_x =
-        (static_cast<double>(output_width) - content_width) / 2.0 - view_box.min_x * scale;
-    transform.offset_y =
-        (static_cast<double>(output_height) - content_height) / 2.0 - view_box.min_y * scale;
+    const double horizontal_margin =
+        (static_cast<double>(output_width) - content_width) / 2.0;
+    const double vertical_margin =
+        (static_cast<double>(output_height) - content_height) / 2.0;
+    transform.offset_x = horizontal_margin - view_box.min_x * scale;
+    transform.offset_y = vertical_margin - view_box.min_y * scale;
     return transform;
 }
 
@@ -183,7 +185,9 @@ auto SvgRasterizer::make_subpaths(
     return subpaths;
 }
 
-auto SvgRasterizer::transform_point(const interpreter::Point& point, const Transform& transform)
+auto SvgRasterizer::transform_point(
+    const interpreter::Point& point,
+    const Transform& transform)
     -> std::optional<RasterPoint> {
     if (!std::isfinite(point.x) || !std::isfinite(point.y)) {
         return std::nullopt;
@@ -405,7 +409,9 @@ bool SvgRasterizer::is_point_in_round_segment(
     if (length_squared <= GEOMETRY_EPSILON) {
         const double point_delta_x = sample_point.x - segment_start.x;
         const double point_delta_y = sample_point.y - segment_start.y;
-        return point_delta_x * point_delta_x + point_delta_y * point_delta_y <= radius * radius;
+        const double distance_squared =
+            point_delta_x * point_delta_x + point_delta_y * point_delta_y;
+        return distance_squared <= radius * radius;
     }
 
     const double projection =
@@ -417,7 +423,9 @@ bool SvgRasterizer::is_point_in_round_segment(
     const double closest_y = segment_start.y + clamped_projection * delta_y;
     const double point_delta_x = sample_point.x - closest_x;
     const double point_delta_y = sample_point.y - closest_y;
-    return point_delta_x * point_delta_x + point_delta_y * point_delta_y <= radius * radius;
+    const double distance_squared =
+        point_delta_x * point_delta_x + point_delta_y * point_delta_y;
+    return distance_squared <= radius * radius;
 }
 
 void SvgRasterizer::paint_sample(
@@ -494,7 +502,10 @@ void SvgRasterizer::rasterize_draw_shape(
                         paint_sample(destination, color);
                     }
                     if (draw_shape.has_stroke &&
-                        is_point_in_stroke(sample_point, subpaths, stroke_width)) {
+                        is_point_in_stroke(
+                            sample_point,
+                            subpaths,
+                            stroke_width)) {
                         paint_sample(destination, color);
                     }
                 }
@@ -558,9 +569,12 @@ auto SvgRasterizer::make_output_image(
             continue;
         }
 
-        image.pixels[byte_index] = to_byte(accumulated.red / accumulated.alpha * 255.0);
-        image.pixels[byte_index + 1U] = to_byte(accumulated.green / accumulated.alpha * 255.0);
-        image.pixels[byte_index + 2U] = to_byte(accumulated.blue / accumulated.alpha * 255.0);
+        image.pixels[byte_index] =
+            to_byte(accumulated.red / accumulated.alpha * 255.0);
+        image.pixels[byte_index + 1U] =
+            to_byte(accumulated.green / accumulated.alpha * 255.0);
+        image.pixels[byte_index + 2U] =
+            to_byte(accumulated.blue / accumulated.alpha * 255.0);
     }
 
     return image;

@@ -281,7 +281,8 @@ TEST_F(SvgRasterizerTest, StrokeJoinDoesNotAccumulateAlpha) {
 
 TEST_F(SvgRasterizerTest, NonzeroFillUsesWindingDirection) {
     std::vector<PathInstruction> same_direction = make_closed_rectangle(2.0, 2.0, 12.0, 12.0);
-    const std::vector<PathInstruction> inner_same_direction = make_closed_rectangle(5.0, 5.0, 6.0, 6.0);
+    const std::vector<PathInstruction> inner_same_direction =
+        make_closed_rectangle(5.0, 5.0, 6.0, 6.0);
     same_direction.insert(
         same_direction.end(),
         inner_same_direction.begin(),
@@ -392,5 +393,14 @@ TEST_F(SvgRasterizerTest, RgbaImageUsesTightlyPackedRows) {
     EXPECT_EQ(result->height, 1);
     EXPECT_EQ(
         result->pixels,
-        (std::vector<std::uint8_t>{10U, 20U, 30U, 40U, 0U, 0U, 0U, 0U}));
+        (std::vector<std::uint8_t>{
+            10U,
+            20U,
+            30U,
+            40U,
+            0U,
+            0U,
+            0U,
+            0U,
+        }));
 }

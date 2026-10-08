@@ -63,7 +63,9 @@ private:
         const std::vector<interpreter::PathInstruction>& path_instructions,
         const Transform& transform)
         -> std::optional<std::vector<Subpath>>;
-    static auto transform_point(const interpreter::Point& point, const Transform& transform)
+    static auto transform_point(
+        const interpreter::Point& point,
+        const Transform& transform)
         -> std::optional<RasterPoint>;
     static void append_cubic_bezier(
         Subpath& subpath,
