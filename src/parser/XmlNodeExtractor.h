@@ -42,13 +42,26 @@ private:
         std::size_t current_position = 0;
     };
 
+    enum class ConsumeResult {
+        Consumed,
+        NotMatched,
+        Failed,
+    };
+
+    static ConsumeResult to_consume_result(bool is_consumed);
+
     bool normalize_document_start();
+    ConsumeResult consume_document_start_item();
     std::optional<ExtractedNode> extract_node();
     bool extract_xml_name(std::string& extracted_name);
     bool extract_attributes(std::vector<ExtractedAttribute>& extracted_attributes);
     bool extract_quoted_value(std::string& extracted_value);
     bool extract_child_nodes(std::string_view parent_name, std::vector<ExtractedNode>& extracted_children);
+    ConsumeResult consume_comment();
+    bool consume_closing_tag(std::string_view parent_name);
+    void skip_text();
     bool validate_document_end();
+    ConsumeResult consume_document_end_item();
 
     std::string xml_content;
     XmlReader xml_reader;

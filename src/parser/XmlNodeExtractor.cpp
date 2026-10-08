@@ -72,17 +72,16 @@ bool XmlNodeExtractor::XmlReader::consume_doctype() {
     int bracket_depth = 0;
     while (!is_eof()) {
         const char current = peek();
-        if (current == '[') {
-            ++bracket_depth;
-        } else if (current == ']') {
-            if (bracket_depth > 0) {
-                --bracket_depth;
-            }
-        } else if (current == '>' && bracket_depth == 0) {
-            advance();
+        advance();
+        if (current == '>' && bracket_depth == 0) {
             return true;
         }
-        advance();
+        if (current == '[') {
+            ++bracket_depth;
+        }
+        if (current == ']' && bracket_depth > 0) {
+            --bracket_depth;
+        }
     }
 
     return false;
@@ -129,35 +128,37 @@ std::optional<ExtractedNode> XmlNodeExtractor::extract_from_xml() {
     return root_node;
 }
 
+XmlNodeExtractor::ConsumeResult XmlNodeExtractor::to_consume_result(bool is_consumed) {
+    return is_consumed ? ConsumeResult::Consumed : ConsumeResult::Failed;
+}
+
 bool XmlNodeExtractor::normalize_document_start() {
     while (!xml_reader.is_eof()) {
         xml_reader.skip_whitespace();
 
-        if (xml_reader.starts_with("<?")) {
-            if (!xml_reader.consume_enclosed("<?", "?>")) {
-                return false;
-            }
-            continue;
+        const ConsumeResult result = consume_document_start_item();
+        if (result == ConsumeResult::Failed) {
+            return false;
         }
-
-        if (xml_reader.starts_with("<!--")) {
-            if (!xml_reader.consume_enclosed("<!--", "-->")) {
-                return false;
-            }
-            continue;
+        if (result == ConsumeResult::NotMatched) {
+            break;
         }
-
-        if (xml_reader.starts_with("<!DOCTYPE")) {
-            if (!xml_reader.consume_doctype()) {
-                return false;
-            }
-            continue;
-        }
-
-        break;
     }
 
     return !xml_reader.is_eof();
+}
+
+XmlNodeExtractor::ConsumeResult XmlNodeExtractor::consume_document_start_item() {
+    if (xml_reader.starts_with("<?")) {
+        return to_consume_result(xml_reader.consume_enclosed("<?", "?>"));
+    }
+    if (xml_reader.starts_with("<!--")) {
+        return to_consume_result(xml_reader.consume_enclosed("<!--", "-->"));
+    }
+    if (xml_reader.starts_with("<!DOCTYPE")) {
+        return to_consume_result(xml_reader.consume_doctype());
+    }
+    return ConsumeResult::NotMatched;
 }
 
 std::optional<ExtractedNode> XmlNodeExtractor::extract_node() {
@@ -265,72 +266,90 @@ bool XmlNodeExtractor::extract_quoted_value(std::string& extracted_value) {
 
 bool XmlNodeExtractor::extract_child_nodes(std::string_view parent_name, std::vector<ExtractedNode>& extracted_children) {
     while (!xml_reader.is_eof()) {
-        if (xml_reader.starts_with("<!--")) {
-            if (!xml_reader.consume_enclosed("<!--", "-->")) {
-                return false;
-            }
+        const ConsumeResult comment_result = consume_comment();
+        if (comment_result == ConsumeResult::Failed) {
+            return false;
+        }
+        if (comment_result == ConsumeResult::Consumed) {
             continue;
         }
 
         if (xml_reader.starts_with("</")) {
-            xml_reader.consume_token("</");
-
-            std::string closing_name;
-            if (!extract_xml_name(closing_name)) {
-                return false;
-            }
-
-            xml_reader.skip_whitespace();
-            if (!xml_reader.consume('>')) {
-                return false;
-            }
-
-            return closing_name == parent_name;
+            return consume_closing_tag(parent_name);
         }
 
-        if (xml_reader.peek() == '<') {
-            auto child_node = extract_node();
-            if (!child_node) {
-                return false;
-            }
-            extracted_children.push_back(std::move(*child_node));
+        if (xml_reader.peek() != '<') {
+            skip_text();
             continue;
         }
 
-        while (!xml_reader.is_eof() && xml_reader.peek() != '<') {
-            xml_reader.advance();
+        auto child_node = extract_node();
+        if (!child_node) {
+            return false;
         }
+        extracted_children.push_back(std::move(*child_node));
     }
 
     return false;
+}
+
+XmlNodeExtractor::ConsumeResult XmlNodeExtractor::consume_comment() {
+    if (!xml_reader.starts_with("<!--")) {
+        return ConsumeResult::NotMatched;
+    }
+    return to_consume_result(xml_reader.consume_enclosed("<!--", "-->"));
+}
+
+bool XmlNodeExtractor::consume_closing_tag(std::string_view parent_name) {
+    xml_reader.consume_token("</");
+
+    std::string closing_name;
+    if (!extract_xml_name(closing_name)) {
+        return false;
+    }
+
+    xml_reader.skip_whitespace();
+    if (!xml_reader.consume('>')) {
+        return false;
+    }
+
+    return closing_name == parent_name;
+}
+
+void XmlNodeExtractor::skip_text() {
+    while (!xml_reader.is_eof() && xml_reader.peek() != '<') {
+        xml_reader.advance();
+    }
 }
 
 bool XmlNodeExtractor::validate_document_end() {
     while (!xml_reader.is_eof()) {
         xml_reader.skip_whitespace();
 
-        if (xml_reader.starts_with("<!--")) {
-            if (!xml_reader.consume_enclosed("<!--", "-->")) {
-                return false;
-            }
-            continue;
-        }
-
-        if (xml_reader.starts_with("<?")) {
-            if (!xml_reader.consume_enclosed("<?", "?>")) {
-                return false;
-            }
-            continue;
-        }
-
-        if (xml_reader.starts_with("<!DOCTYPE")) {
+        const ConsumeResult result = consume_document_end_item();
+        if (result == ConsumeResult::Failed) {
             return false;
         }
-
-        break;
+        if (result == ConsumeResult::NotMatched) {
+            break;
+        }
     }
 
     return xml_reader.is_eof();
+}
+
+XmlNodeExtractor::ConsumeResult XmlNodeExtractor::consume_document_end_item() {
+    const ConsumeResult comment_result = consume_comment();
+    if (comment_result != ConsumeResult::NotMatched) {
+        return comment_result;
+    }
+    if (xml_reader.starts_with("<?")) {
+        return to_consume_result(xml_reader.consume_enclosed("<?", "?>"));
+    }
+    if (xml_reader.starts_with("<!DOCTYPE")) {
+        return ConsumeResult::Failed;
+    }
+    return ConsumeResult::NotMatched;
 }
 
 }
