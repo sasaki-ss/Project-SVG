@@ -556,6 +556,51 @@ TEST_F(SvgRasterizerTest, FilledSquareCoverageMatchesArea) {
     EXPECT_NEAR(calculate_covered_area(*result), EXPECTED_AREA, AREA_TOLERANCE);
 }
 
+TEST_F(SvgRasterizerTest, StrokeCrossingImageBoundaryCoversClippedArea) {
+    constexpr double EXPECTED_AREA = 40.0;
+    constexpr double AREA_TOLERANCE = 0.01;
+    const DrawShape draw_shape = make_shape(
+        make_closed_rectangle(-5.0, 3.0, 20.0, 4.0),
+        false,
+        true,
+        2.0);
+
+    const auto result = SvgRasterizer::rasterize(
+        {draw_shape},
+        make_view_box(10.0, 10.0),
+        10,
+        10,
+        RgbaColor{10U, 20U, 30U, 255U});
+
+    ASSERT_TRUE(result.has_value());
+    EXPECT_NEAR(calculate_covered_area(*result), EXPECTED_AREA, AREA_TOLERANCE);
+    EXPECT_EQ(get_alpha(*result, 0, 2), 255U);
+    EXPECT_EQ(get_alpha(*result, 9, 7), 255U);
+    EXPECT_EQ(get_alpha(*result, 0, 5), 0U);
+}
+
+TEST_F(SvgRasterizerTest, StrokeWiderThanImageCoversEveryPixel) {
+    const DrawShape draw_shape = make_shape(
+        {make_move_to(-20.0, 5.0), make_line_to(30.0, 5.0)},
+        false,
+        true,
+        30.0);
+
+    const auto result = SvgRasterizer::rasterize(
+        {draw_shape},
+        make_view_box(10.0, 10.0),
+        10,
+        10,
+        RgbaColor{10U, 20U, 30U, 255U});
+
+    ASSERT_TRUE(result.has_value());
+    for (int y = 0; y < result->height; ++y) {
+        for (int x = 0; x < result->width; ++x) {
+            EXPECT_EQ(get_alpha(*result, x, y), 255U);
+        }
+    }
+}
+
 TEST_F(SvgRasterizerTest, CubicCircleCoverageMatchesArea) {
     constexpr double RADIUS = 30.0;
     constexpr double EXPECTED_AREA = 3.14159265358979323846 * RADIUS * RADIUS;
