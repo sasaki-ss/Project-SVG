@@ -28,8 +28,6 @@ private:
     static std::optional<SvgElementType> interpret_element_type(
         std::string_view element_name);
 
-    static bool is_supported_paint(std::string_view value);
-
     static std::optional<SvgShape> interpret_path(const parser::ExtractedNode& node);
 
     static std::optional<SvgShape> interpret_circle(const parser::ExtractedNode& node);

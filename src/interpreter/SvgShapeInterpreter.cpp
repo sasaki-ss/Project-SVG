@@ -47,12 +47,6 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret(const parser::ExtractedNo
 
     shape->fill = SvgInterpreterUtility::find_attribute_value(node, "fill");
     shape->stroke = SvgInterpreterUtility::find_attribute_value(node, "stroke");
-    if (shape->fill.has_value() && !is_supported_paint(*shape->fill)) {
-        return std::nullopt;
-    }
-    if (shape->stroke.has_value() && !is_supported_paint(*shape->stroke)) {
-        return std::nullopt;
-    }
     return shape;
 }
 
@@ -261,10 +255,6 @@ std::optional<SvgElementType> SvgShapeInterpreter::interpret_element_type(
     }
 
     return std::nullopt;
-}
-
-bool SvgShapeInterpreter::is_supported_paint(std::string_view value) {
-    return value == "none" || value == "currentColor";
 }
 
 }
