@@ -46,6 +46,11 @@ private:
         int max_y;
     };
 
+    enum class BandAxis {
+        Horizontal,
+        Vertical,
+    };
+
     struct ShapeGeometry {
         std::vector<Segment> stroke_segments;
         std::vector<std::vector<Segment>> fill_edges;
@@ -179,7 +184,7 @@ private:
         RowCandidates& row_candidates);
     static void collect_segments_near_band(
         const std::vector<Segment>& segments,
-        bool is_horizontal_band,
+        BandAxis band_axis,
         double band_start,
         double reach,
         std::vector<Segment>& near_segments);

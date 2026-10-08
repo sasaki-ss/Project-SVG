@@ -605,17 +605,18 @@ void SvgRasterizer::collect_row_candidates(
     RowCandidates& row_candidates) {
     collect_segments_near_band(
         geometry.stroke_segments,
-        true,
+        BandAxis::Horizontal,
         row_start,
         geometry.stroke_reach,
         row_candidates.stroke_segments);
 
     row_candidates.has_fill_edges = false;
-    for (std::size_t subpath_index = 0; subpath_index < geometry.fill_edges.size(); ++subpath_index) {
+    const std::size_t subpath_count = geometry.fill_edges.size();
+    for (std::size_t subpath_index = 0; subpath_index < subpath_count; ++subpath_index) {
         std::vector<Segment>& row_edges = row_candidates.fill_edges[subpath_index];
         collect_segments_near_band(
             geometry.fill_edges[subpath_index],
-            true,
+            BandAxis::Horizontal,
             row_start,
             CULLING_MARGIN,
             row_edges);
@@ -625,15 +626,16 @@ void SvgRasterizer::collect_row_candidates(
 
 void SvgRasterizer::collect_segments_near_band(
     const std::vector<Segment>& segments,
-    bool is_horizontal_band,
+    BandAxis band_axis,
     double band_start,
     double reach,
     std::vector<Segment>& near_segments) {
     near_segments.clear();
     const double band_end = band_start + 1.0;
+    const bool uses_y = band_axis == BandAxis::Horizontal;
     for (const Segment& segment : segments) {
-        const double first = is_horizontal_band ? segment.start.y : segment.start.x;
-        const double second = is_horizontal_band ? segment.end.y : segment.end.x;
+        const double first = uses_y ? segment.start.y : segment.start.x;
+        const double second = uses_y ? segment.end.y : segment.end.x;
         if (is_segment_near_band(first, second, band_start, band_end, reach)) {
             near_segments.push_back(segment);
         }
@@ -652,7 +654,7 @@ void SvgRasterizer::rasterize_pixel(
 
     collect_segments_near_band(
         row_candidates.stroke_segments,
-        false,
+        BandAxis::Vertical,
         pixel_origin.x,
         geometry.stroke_reach,
         pixel_stroke_segments);
