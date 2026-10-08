@@ -18,12 +18,16 @@ file(GLOB PROJECT_SVG_INTERPRETER_SOURCES CONFIGURE_DEPENDS
 file(GLOB PROJECT_SVG_DRAW_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/draw/*.cpp"
 )
+file(GLOB PROJECT_SVG_RASTERIZER_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/rasterizer/*.cpp"
+)
 
 add_library(project_svg STATIC
     ${PROJECT_SVG_LOADER_SOURCES}
     ${PROJECT_SVG_PARSER_SOURCES}
     ${PROJECT_SVG_INTERPRETER_SOURCES}
     ${PROJECT_SVG_DRAW_SOURCES}
+    ${PROJECT_SVG_RASTERIZER_SOURCES}
 )
 
 target_include_directories(project_svg
@@ -56,6 +60,9 @@ if (BUILD_TESTING)
     )
     file(GLOB PROJECT_SVG_DRAW_TEST_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/draw/*.cpp"
+    )
+    file(GLOB PROJECT_SVG_RASTERIZER_TEST_SOURCES CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/rasterizer/*.cpp"
     )
 
     if (PROJECT_SVG_PARSER_TEST_SOURCES)
@@ -147,4 +154,33 @@ if (BUILD_TESTING)
         enable_testing()
         add_test(NAME draw_tests COMMAND project_svg_draw_tests)
     endif()
+
+    if (PROJECT_SVG_RASTERIZER_TEST_SOURCES)
+        add_executable(project_svg_rasterizer_tests
+            ${PROJECT_SVG_RASTERIZER_TEST_SOURCES}
+        )
+
+        target_link_libraries(project_svg_rasterizer_tests
+            PRIVATE
+                project_svg
+                gtest_main
+        )
+
+        target_include_directories(project_svg_rasterizer_tests
+            PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}/src
+        )
+
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            target_compile_options(project_svg_rasterizer_tests PRIVATE -Wall -Wextra -Wpedantic)
+        elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            target_compile_options(project_svg_rasterizer_tests PRIVATE -Wall -Wextra -Wpedantic)
+        elseif (MSVC)
+            target_compile_options(project_svg_rasterizer_tests PRIVATE /W4)
+        endif()
+
+        enable_testing()
+        add_test(NAME rasterizer_tests COMMAND project_svg_rasterizer_tests)
+    endif()
+
 endif()
