@@ -158,6 +158,28 @@ TEST(SvgDrawModelBuilderTest, RectWithoutRadiiUsesClosedLinePath) {
     expect_instruction(instructions[4], PathInstructionType::ClosePath, 0U);
 }
 
+TEST(SvgDrawModelBuilderTest, RectWithExplicitZeroRxUsesClosedLinePath) {
+    const auto result = build_draw_shapes(create_root({
+        create_node(
+            "rect",
+            {{"x", "1"}, {"y", "2"}, {"width", "6"}, {"height", "4"}, {"rx", "0"}}),
+    }));
+
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(result->size(), 1U);
+    const std::vector<PathInstruction>& instructions = result->at(0).path_instructions;
+    ASSERT_EQ(instructions.size(), 5U);
+    expect_instruction(instructions[0], PathInstructionType::MoveTo, 1U);
+    expect_point(instructions[0].points[0], 1.0, 2.0);
+    expect_instruction(instructions[1], PathInstructionType::LineTo, 1U);
+    expect_point(instructions[1].points[0], 7.0, 2.0);
+    expect_instruction(instructions[2], PathInstructionType::LineTo, 1U);
+    expect_point(instructions[2].points[0], 7.0, 6.0);
+    expect_instruction(instructions[3], PathInstructionType::LineTo, 1U);
+    expect_point(instructions[3].points[0], 1.0, 6.0);
+    expect_instruction(instructions[4], PathInstructionType::ClosePath, 0U);
+}
+
 TEST(SvgDrawModelBuilderTest, RoundedRectUsesCubicBezierCorners) {
     const auto result = build_draw_shapes(create_root({
         create_node(
@@ -224,6 +246,21 @@ TEST(SvgDrawModelBuilderTest, LineUsesMoveAndLineAndNeverHasFill) {
     expect_instruction(shape.path_instructions[0], PathInstructionType::MoveTo, 1U);
     expect_instruction(shape.path_instructions[1], PathInstructionType::LineTo, 1U);
     expect_point(shape.path_instructions[1].points[0], 3.0, 4.0);
+}
+
+TEST(SvgDrawModelBuilderTest, LineWithIdenticalEndpointsUsesMoveAndLine) {
+    const auto result = build_draw_shapes(create_root({
+        create_node("line", {{"x1", "1"}, {"y1", "2"}, {"x2", "1"}, {"y2", "2"}}),
+    }));
+
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(result->size(), 1U);
+    const std::vector<PathInstruction>& instructions = result->at(0).path_instructions;
+    ASSERT_EQ(instructions.size(), 2U);
+    expect_instruction(instructions[0], PathInstructionType::MoveTo, 1U);
+    expect_point(instructions[0].points[0], 1.0, 2.0);
+    expect_instruction(instructions[1], PathInstructionType::LineTo, 1U);
+    expect_point(instructions[1].points[0], 1.0, 2.0);
 }
 
 TEST(SvgDrawModelBuilderTest, PolylineUsesOpenLinePath) {
@@ -374,6 +411,16 @@ TEST(SvgDrawModelBuilderTest, NegativeCircleRadiusFails) {
 TEST(SvgDrawModelBuilderTest, NegativeRectDimensionFails) {
     const auto result = build_draw_shapes(create_root({
         create_node("rect", {{"x", "1"}, {"y", "2"}, {"width", "-1"}, {"height", "4"}}),
+    }));
+
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST(SvgDrawModelBuilderTest, NegativeRectRxFails) {
+    const auto result = build_draw_shapes(create_root({
+        create_node(
+            "rect",
+            {{"x", "1"}, {"y", "2"}, {"width", "4"}, {"height", "6"}, {"rx", "-1"}}),
     }));
 
     EXPECT_FALSE(result.has_value());
