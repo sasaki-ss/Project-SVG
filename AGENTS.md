@@ -18,7 +18,7 @@ lucide (https://github.com/lucide-icons/lucide) のアイコンを、DXライブ
 ## ディレクトリ構成
 | ディレクトリ名 | 概要 |
 |---|---|
-| `.github` | ワークフロー・PR雛形 |
+| `.github` | ワークフロー |
 | `docs` | 開発ルールや関連資料 |
 | `src` | ライブラリ本体の実装 |
 | `tests` | 単体テストコード配置 |
@@ -41,7 +41,7 @@ lucide (https://github.com/lucide-icons/lucide) のアイコンを、DXライブ
 |---|---|
 | ゴール・対応範囲の変更 | クロ。止まって確認する |
 | 仕様の解釈が複数取れ、選択で成果物が変わる場合 | クロ。止まって確認する |
-| ゴールに収まる手段 (クラス設計・データ構造・アルゴリズム・テストケース) | AI が決めてよい。判断と理由を PR 本文に残す |
+| ゴールに収まる手段 (クラス設計・データ構造・アルゴリズム・テストケース) | AI が決めてよい。判断と理由を完了報告に残す |
 | 依存ライブラリの追加・更新 | クロ。止まって確認する |
 
 止まるときは、現状 / 問題点 / 選択肢 / 推奨案 / 判断が必要な理由 を揃えて 1 回で渡す。
@@ -51,7 +51,6 @@ lucide (https://github.com/lucide-icons/lucide) のアイコンを、DXライブ
 ### 必須
 作業前に以下を確認すること。
 
-- `.github/PULL_REQUEST_TEMPLATE.md`
 - `docs/commit_guidelines.md`
 
 ### 条件付き
@@ -61,12 +60,15 @@ lucide (https://github.com/lucide-icons/lucide) のアイコンを、DXライブ
 #### テストコードを実装する場合
 - `docs/test_coding_guidelines.md`
 
-## PRのルール
-- PR本文は `.github/PULL_REQUEST_TEMPLATE.md` のフォーマットに埋め込む形で出力すること。
-- PRタイトルは`docs/commit_guidelines.md`を準拠して出力すること。
-- PR本文内の見出しは `.github/PULL_REQUEST_TEMPLATE.md` を準拠すること。
-- PR本文は日本語で出力すること。
-- PRタイトルは日本語で出力すること。
+## ブランチとマージ
+PR は使わない。作業はすべてこの PC 上のローカルブランチで行う。
+
+| 段階 | 担当 | 方法 |
+|---|---|---|
+| 作業ブランチの作成 | 委託側 (Claude) | 委託前に `develop` から作成する |
+| コミット | 実装者 | MCP `ai_tools` の `git_safe` で `commit-push --no-push` (シェルから git の書込みコマンドを打たない) |
+| レビュー | AI レビュアー | implementation-review の基準で PASS / PASS WITH FIXES / FAIL を判定する |
+| `develop` へのマージ | 委託側 (Claude) | PASS 後に `git_safe merge` で行う |
 
 ## コミット時のルール
 - コミットメッセージは`docs/commit_guidelines.md`を準拠して出力すること。
@@ -99,7 +101,6 @@ lucide (https://github.com/lucide-icons/lucide) のアイコンを、DXライブ
 - 実施内容の要約
 - AI が行った設計判断とその理由
 - 必要に応じて日本語のコミットメッセージ案
-- 必要に応じて日本語のPR本文案
 
 ## 禁止事項
 - ゴール・対応範囲を独断で変更しない
