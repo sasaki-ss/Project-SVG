@@ -63,6 +63,17 @@ private:
     static constexpr double CUBIC_FLATTEN_TOLERANCE = 0.25;
     static constexpr double GEOMETRY_EPSILON = 1e-9;
     static constexpr double CULLING_MARGIN = 1.0;
+    static constexpr SampleCoverage FULL_COVERAGE =
+        static_cast<SampleCoverage>((1U << SAMPLE_COUNT_PER_PIXEL) - 1U);
+    // Upper bound of the distance from a pixel center to its farthest sample, so that a pixel
+    // can be decided as a whole only when the per-sample test is guaranteed to agree.
+    static constexpr double SAMPLE_REACH_FROM_CENTER = 0.5304;
+    static constexpr double WHOLE_PIXEL_DECISION_MARGIN = 1e-6;
+    static constexpr double FARTHEST_SAMPLE_OFFSET = 0.5 - 0.5 / SUPERSAMPLE_COUNT;
+    static_assert(
+        SAMPLE_REACH_FROM_CENTER * SAMPLE_REACH_FROM_CENTER >=
+            2.0 * FARTHEST_SAMPLE_OFFSET * FARTHEST_SAMPLE_OFFSET,
+        "SAMPLE_REACH_FROM_CENTER must cover the farthest sample of a pixel");
 
     SvgRasterizer() = delete;
 
@@ -128,6 +139,13 @@ private:
         const RasterPoint& sample_point,
         const std::vector<Segment>& segments,
         double radius);
+    static double calculate_nearest_segment_distance(
+        const RasterPoint& point,
+        const std::vector<Segment>& segments);
+    static double calculate_point_segment_distance(
+        const RasterPoint& point,
+        const RasterPoint& segment_start,
+        const RasterPoint& segment_end);
     static bool is_point_in_round_segment(
         const RasterPoint& sample_point,
         const RasterPoint& segment_start,

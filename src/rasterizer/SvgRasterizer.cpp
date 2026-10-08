@@ -463,6 +463,38 @@ bool SvgRasterizer::is_point_in_stroke(
     return false;
 }
 
+double SvgRasterizer::calculate_nearest_segment_distance(
+    const RasterPoint& point,
+    const std::vector<Segment>& segments) {
+    double nearest_distance = std::numeric_limits<double>::infinity();
+    for (const Segment& segment : segments) {
+        nearest_distance = std::min(
+            nearest_distance,
+            calculate_point_segment_distance(point, segment.start, segment.end));
+    }
+    return nearest_distance;
+}
+
+double SvgRasterizer::calculate_point_segment_distance(
+    const RasterPoint& point,
+    const RasterPoint& segment_start,
+    const RasterPoint& segment_end) {
+    const double delta_x = segment_end.x - segment_start.x;
+    const double delta_y = segment_end.y - segment_start.y;
+    const double length_squared = delta_x * delta_x + delta_y * delta_y;
+    double projection = 0.0;
+    if (length_squared > GEOMETRY_EPSILON) {
+        projection = std::clamp(
+            ((point.x - segment_start.x) * delta_x + (point.y - segment_start.y) * delta_y) /
+                length_squared,
+            0.0,
+            1.0);
+    }
+    const double point_delta_x = point.x - (segment_start.x + projection * delta_x);
+    const double point_delta_y = point.y - (segment_start.y + projection * delta_y);
+    return std::sqrt(point_delta_x * point_delta_x + point_delta_y * point_delta_y);
+}
+
 bool SvgRasterizer::is_point_in_round_segment(
     const RasterPoint& sample_point,
     const RasterPoint& segment_start,
@@ -595,6 +627,23 @@ void SvgRasterizer::rasterize_draw_shape(
                 static_cast<std::size_t>(pixel_y) * static_cast<std::size_t>(output_width) +
                 static_cast<std::size_t>(pixel_x);
             SampleCoverage& coverage = coverages[pixel_index];
+            if (coverage == FULL_COVERAGE) {
+                continue;
+            }
+            if (!pixel_stroke_segments.empty()) {
+                const RasterPoint pixel_center{column_start + 0.5, row_start + 0.5};
+                const double center_distance =
+                    calculate_nearest_segment_distance(pixel_center, pixel_stroke_segments);
+                const double sample_spread =
+                    SAMPLE_REACH_FROM_CENTER + WHOLE_PIXEL_DECISION_MARGIN;
+                if (center_distance + sample_spread <= radius) {
+                    coverage = FULL_COVERAGE;
+                    continue;
+                }
+                if (!has_row_fill_edges && center_distance - sample_spread > radius) {
+                    continue;
+                }
+            }
             for (int sample_y = 0; sample_y < SUPERSAMPLE_COUNT; ++sample_y) {
                 for (int sample_x = 0; sample_x < SUPERSAMPLE_COUNT; ++sample_x) {
                     const SampleCoverage sample_bit = static_cast<SampleCoverage>(
