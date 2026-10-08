@@ -20,13 +20,11 @@ auto SvgRasterizer::rasterize(
         return std::nullopt;
     }
 
-    const auto samples = make_sample_buffer(output_width, output_height);
-    if (!samples.has_value()) {
+    auto coverages = make_coverage_buffer(output_width, output_height);
+    if (!coverages.has_value()) {
         return std::nullopt;
     }
 
-    const RgbaColor opaque_color{color.red, color.green, color.blue, 255U};
-    std::vector<PremultipliedColor> raster_samples = *samples;
     for (const draw::DrawShape& draw_shape : draw_shapes) {
         if (!std::isfinite(draw_shape.stroke_width) || draw_shape.stroke_width < 0.0) {
             return std::nullopt;
@@ -38,19 +36,19 @@ auto SvgRasterizer::rasterize(
         }
 
         rasterize_draw_shape(
-            raster_samples,
+            *coverages,
             output_width,
             output_height,
             draw_shape,
             *subpaths,
-            draw_shape.stroke_width * transform->scale,
-            opaque_color);
+            draw_shape.stroke_width * transform->scale);
     }
 
     auto output_image = make_output_image(
         output_width,
         output_height,
-        raster_samples);
+        *coverages,
+        color);
     if (!output_image.has_value()) {
         return std::nullopt;
     }
@@ -438,22 +436,8 @@ bool SvgRasterizer::is_point_in_round_segment(
     return distance_squared <= radius * radius;
 }
 
-void SvgRasterizer::paint_sample(
-    PremultipliedColor& destination,
-    const RgbaColor& source_color) {
-    const double source_alpha = static_cast<double>(source_color.alpha) / 255.0;
-    const double inverse_source_alpha = 1.0 - source_alpha;
-    destination.red = static_cast<double>(source_color.red) / 255.0 * source_alpha +
-        destination.red * inverse_source_alpha;
-    destination.green = static_cast<double>(source_color.green) / 255.0 * source_alpha +
-        destination.green * inverse_source_alpha;
-    destination.blue = static_cast<double>(source_color.blue) / 255.0 * source_alpha +
-        destination.blue * inverse_source_alpha;
-    destination.alpha = source_alpha + destination.alpha * inverse_source_alpha;
-}
-
-auto SvgRasterizer::make_sample_buffer(int output_width, int output_height)
-    -> std::optional<std::vector<PremultipliedColor>> {
+auto SvgRasterizer::make_coverage_buffer(int output_width, int output_height)
+    -> std::optional<std::vector<SampleCoverage>> {
     if (output_width <= 0 || output_height <= 0) {
         return std::nullopt;
     }
@@ -463,34 +447,35 @@ auto SvgRasterizer::make_sample_buffer(int output_width, int output_height)
     if (width > std::numeric_limits<std::size_t>::max() / height) {
         return std::nullopt;
     }
-    const std::size_t pixel_count = width * height;
-    if (pixel_count >
-        std::numeric_limits<std::size_t>::max() /
-            static_cast<std::size_t>(SAMPLE_COUNT_PER_PIXEL)) {
-        return std::nullopt;
-    }
 
     try {
-        return std::vector<PremultipliedColor>(
-            pixel_count * static_cast<std::size_t>(SAMPLE_COUNT_PER_PIXEL),
-            PremultipliedColor{0.0, 0.0, 0.0, 0.0});
+        return std::vector<SampleCoverage>(width * height, 0U);
     } catch (...) {
         return std::nullopt;
     }
 }
 
 void SvgRasterizer::rasterize_draw_shape(
-    std::vector<PremultipliedColor>& samples,
+    std::vector<SampleCoverage>& coverages,
     int output_width,
     int output_height,
     const draw::DrawShape& draw_shape,
     const std::vector<Subpath>& subpaths,
-    double stroke_width,
-    const RgbaColor& color) {
+    double stroke_width) {
     for (int pixel_y = 0; pixel_y < output_height; ++pixel_y) {
         for (int pixel_x = 0; pixel_x < output_width; ++pixel_x) {
+            const std::size_t pixel_index =
+                static_cast<std::size_t>(pixel_y) * static_cast<std::size_t>(output_width) +
+                static_cast<std::size_t>(pixel_x);
+            SampleCoverage& coverage = coverages[pixel_index];
             for (int sample_y = 0; sample_y < SUPERSAMPLE_COUNT; ++sample_y) {
                 for (int sample_x = 0; sample_x < SUPERSAMPLE_COUNT; ++sample_x) {
+                    const SampleCoverage sample_bit = static_cast<SampleCoverage>(
+                        1U << (sample_y * SUPERSAMPLE_COUNT + sample_x));
+                    if ((coverage & sample_bit) != 0U) {
+                        continue;
+                    }
+
                     const double offset_x =
                         (static_cast<double>(sample_x) + 0.5) /
                         static_cast<double>(SUPERSAMPLE_COUNT);
@@ -501,27 +486,28 @@ void SvgRasterizer::rasterize_draw_shape(
                         static_cast<double>(pixel_x) + offset_x,
                         static_cast<double>(pixel_y) + offset_y,
                     };
-                    const std::size_t sample_index =
-                        (static_cast<std::size_t>(pixel_y) *
-                            static_cast<std::size_t>(output_width) +
-                         static_cast<std::size_t>(pixel_x)) *
-                            static_cast<std::size_t>(SAMPLE_COUNT_PER_PIXEL) +
-                        static_cast<std::size_t>(sample_y * SUPERSAMPLE_COUNT + sample_x);
-                    PremultipliedColor& destination = samples[sample_index];
-                    if (draw_shape.has_fill && is_point_in_fill(sample_point, subpaths)) {
-                        paint_sample(destination, color);
-                    }
-                    if (draw_shape.has_stroke &&
-                        is_point_in_stroke(
-                            sample_point,
-                            subpaths,
-                            stroke_width)) {
-                        paint_sample(destination, color);
+                    const bool is_filled =
+                        draw_shape.has_fill && is_point_in_fill(sample_point, subpaths);
+                    const bool is_stroked =
+                        draw_shape.has_stroke &&
+                        is_point_in_stroke(sample_point, subpaths, stroke_width);
+                    if (is_filled || is_stroked) {
+                        coverage = static_cast<SampleCoverage>(coverage | sample_bit);
                     }
                 }
             }
         }
     }
+}
+
+int SvgRasterizer::count_covered_samples(SampleCoverage coverage) {
+    int covered_count = 0;
+    for (SampleCoverage remaining = coverage;
+         remaining != 0U;
+         remaining = static_cast<SampleCoverage>(remaining & (remaining - 1U))) {
+        ++covered_count;
+    }
+    return covered_count;
 }
 
 void SvgRasterizer::apply_group_opacity(
@@ -545,19 +531,16 @@ void SvgRasterizer::apply_group_opacity(
 auto SvgRasterizer::make_output_image(
     int output_width,
     int output_height,
-    const std::vector<PremultipliedColor>& samples)
+    const std::vector<SampleCoverage>& coverages,
+    const RgbaColor& color)
     -> std::optional<RgbaImage> {
     const std::size_t width = static_cast<std::size_t>(output_width);
     const std::size_t height = static_cast<std::size_t>(output_height);
-    if (width > std::numeric_limits<std::size_t>::max() / height) {
-        return std::nullopt;
-    }
     const std::size_t pixel_count = width * height;
-    if (pixel_count > std::numeric_limits<std::size_t>::max() / 4U) {
+    if (coverages.size() != pixel_count) {
         return std::nullopt;
     }
-    if (samples.size() !=
-        pixel_count * static_cast<std::size_t>(SAMPLE_COUNT_PER_PIXEL)) {
+    if (pixel_count > std::numeric_limits<std::size_t>::max() / 4U) {
         return std::nullopt;
     }
 
@@ -565,44 +548,24 @@ auto SvgRasterizer::make_output_image(
     image.width = output_width;
     image.height = output_height;
     try {
-        image.pixels.resize(pixel_count * 4U);
+        image.pixels.resize(pixel_count * 4U, 0U);
     } catch (...) {
         return std::nullopt;
     }
 
+    const double sample_count = static_cast<double>(SAMPLE_COUNT_PER_PIXEL);
     for (std::size_t pixel_index = 0; pixel_index < pixel_count; ++pixel_index) {
-        PremultipliedColor accumulated{0.0, 0.0, 0.0, 0.0};
-        for (int sample_index = 0; sample_index < SAMPLE_COUNT_PER_PIXEL; ++sample_index) {
-            const PremultipliedColor& sample = samples[
-                pixel_index * static_cast<std::size_t>(SAMPLE_COUNT_PER_PIXEL) +
-                static_cast<std::size_t>(sample_index)];
-            accumulated.red += sample.red;
-            accumulated.green += sample.green;
-            accumulated.blue += sample.blue;
-            accumulated.alpha += sample.alpha;
-        }
-
-        const double sample_count = static_cast<double>(SAMPLE_COUNT_PER_PIXEL);
-        accumulated.red /= sample_count;
-        accumulated.green /= sample_count;
-        accumulated.blue /= sample_count;
-        accumulated.alpha /= sample_count;
-
-        const std::size_t byte_index = pixel_index * 4U;
-        image.pixels[byte_index + 3U] = to_byte(accumulated.alpha * 255.0);
-        if (accumulated.alpha <= 0.0) {
-            image.pixels[byte_index] = 0U;
-            image.pixels[byte_index + 1U] = 0U;
-            image.pixels[byte_index + 2U] = 0U;
+        const int covered_count = count_covered_samples(coverages[pixel_index]);
+        if (covered_count == 0) {
             continue;
         }
 
-        image.pixels[byte_index] =
-            to_byte(accumulated.red / accumulated.alpha * 255.0);
-        image.pixels[byte_index + 1U] =
-            to_byte(accumulated.green / accumulated.alpha * 255.0);
-        image.pixels[byte_index + 2U] =
-            to_byte(accumulated.blue / accumulated.alpha * 255.0);
+        const std::size_t byte_index = pixel_index * 4U;
+        image.pixels[byte_index] = color.red;
+        image.pixels[byte_index + 1U] = color.green;
+        image.pixels[byte_index + 2U] = color.blue;
+        image.pixels[byte_index + 3U] =
+            to_byte(static_cast<double>(covered_count) / sample_count * 255.0);
     }
 
     return image;

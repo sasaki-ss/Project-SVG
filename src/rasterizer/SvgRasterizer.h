@@ -2,6 +2,7 @@
 #define PROJECT_SVG_RASTERIZER_SVG_RASTERIZER_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <vector>
 
@@ -39,15 +40,13 @@ private:
         double offset_y;
     };
 
-    struct PremultipliedColor {
-        double red;
-        double green;
-        double blue;
-        double alpha;
-    };
+    using SampleCoverage = std::uint16_t;
 
     static constexpr int SUPERSAMPLE_COUNT = 4;
     static constexpr int SAMPLE_COUNT_PER_PIXEL = SUPERSAMPLE_COUNT * SUPERSAMPLE_COUNT;
+    static_assert(
+        SAMPLE_COUNT_PER_PIXEL <= static_cast<int>(sizeof(SampleCoverage) * 8),
+        "each sample of a pixel needs its own coverage bit");
     static constexpr int MAX_CUBIC_SUBDIVISION_DEPTH = 16;
     static constexpr double CUBIC_FLATTEN_TOLERANCE = 0.25;
     static constexpr double GEOMETRY_EPSILON = 1e-9;
@@ -105,26 +104,24 @@ private:
         const RasterPoint& segment_start,
         const RasterPoint& segment_end,
         double radius);
-    static void paint_sample(
-        PremultipliedColor& destination,
-        const RgbaColor& source_color);
-    static auto make_sample_buffer(int output_width, int output_height)
-        -> std::optional<std::vector<PremultipliedColor>>;
+    static auto make_coverage_buffer(int output_width, int output_height)
+        -> std::optional<std::vector<SampleCoverage>>;
     static void rasterize_draw_shape(
-        std::vector<PremultipliedColor>& samples,
+        std::vector<SampleCoverage>& coverages,
         int output_width,
         int output_height,
         const draw::DrawShape& draw_shape,
         const std::vector<Subpath>& subpaths,
-        double stroke_width,
-        const RgbaColor& color);
+        double stroke_width);
+    static int count_covered_samples(SampleCoverage coverage);
     static void apply_group_opacity(
         RgbaImage& image,
         std::uint8_t group_opacity);
     static auto make_output_image(
         int output_width,
         int output_height,
-        const std::vector<PremultipliedColor>& samples)
+        const std::vector<SampleCoverage>& coverages,
+        const RgbaColor& color)
         -> std::optional<RgbaImage>;
     static std::uint8_t to_byte(double value);
 };
