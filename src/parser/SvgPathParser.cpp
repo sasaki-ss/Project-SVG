@@ -51,6 +51,15 @@ auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<Pat
         }
 
         if(current_command.has_value()) {
+            if(current_command->type == PathCommandType::ArcTo) {
+                const auto normalized_parameters = normalize_arc_parameters(
+                    current_command->parameters);
+                if(!normalized_parameters.has_value()) {
+                    return std::nullopt;
+                }
+                current_command->parameters = *normalized_parameters;
+            }
+
             if(!validate_command(*current_command)){
                 return std::nullopt;
             }
@@ -65,6 +74,15 @@ auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<Pat
     }
 
     if(current_command.has_value()) {
+        if(current_command->type == PathCommandType::ArcTo) {
+            const auto normalized_parameters = normalize_arc_parameters(
+                current_command->parameters);
+            if(!normalized_parameters.has_value()) {
+                return std::nullopt;
+            }
+            current_command->parameters = *normalized_parameters;
+        }
+
         if(!validate_command(*current_command)){
             return std::nullopt;
         }
@@ -171,6 +189,59 @@ auto SvgPathParser::read_parameter(const std::string& d, int& index) -> std::opt
 
     index = size;
     return parameter;
+}
+
+auto SvgPathParser::normalize_arc_parameters(
+    const std::vector<std::string>& parameters)
+    -> std::optional<std::vector<std::string>> {
+    constexpr std::size_t ARC_PARAMETER_SIZE = 7;
+    constexpr std::size_t LARGE_ARC_FLAG_INDEX = 3;
+    constexpr std::size_t SWEEP_FLAG_INDEX = 4;
+
+    std::vector<std::string> normalized_parameters;
+    std::size_t parameter_index = 0;
+    std::size_t character_index = 0;
+
+    while (parameter_index < parameters.size()) {
+        while (parameter_index < parameters.size()
+            && character_index >= parameters[parameter_index].size()) {
+            ++parameter_index;
+            character_index = 0;
+        }
+
+        if (parameter_index >= parameters.size()) {
+            break;
+        }
+
+        const std::size_t parameter_position =
+            normalized_parameters.size() % ARC_PARAMETER_SIZE;
+        const bool is_arc_flag = parameter_position == LARGE_ARC_FLAG_INDEX
+            || parameter_position == SWEEP_FLAG_INDEX;
+
+        if (is_arc_flag) {
+            const char flag = parameters[parameter_index][character_index];
+            if (flag != '0' && flag != '1') {
+                return std::nullopt;
+            }
+
+            normalized_parameters.emplace_back(1, flag);
+            ++character_index;
+            continue;
+        }
+
+        if (character_index != 0) {
+            normalized_parameters.push_back(
+                parameters[parameter_index].substr(character_index));
+            ++parameter_index;
+            character_index = 0;
+            continue;
+        }
+
+        normalized_parameters.push_back(parameters[parameter_index]);
+        ++parameter_index;
+    }
+
+    return normalized_parameters;
 }
 
 bool SvgPathParser::validate_command(const PathCommand& command){

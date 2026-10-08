@@ -84,6 +84,7 @@ if (BUILD_TESTING)
         add_executable(project_svg_interpreter_tests
             ${PROJECT_SVG_INTERPRETER_TEST_SOURCES}
             ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter/SvgElementInterpreter.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter/SvgPathInterpreter.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter/SvgShapeInterpreter.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter/SvgInterpreterUtility.cpp
         )

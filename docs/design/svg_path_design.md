@@ -10,10 +10,10 @@
 | `V` | 垂直方向に直線を引く | `y` | `current_point.y` を更新 | Tier1 | `LineTo(current.x, y)` に正規化可能 |
 | `C` | 3次ベジェ曲線を描く | `x1 y1 x2 y2 x y` | `current_point` を更新 | Tier1 | 制御点2つ + 終点 |
 | `Z` | 現在のサブパスを閉じる | なし | `current_point` を `subpath_start` に戻す | Tier1 | `LineTo(subpath_start)` 相当 |
-| `S` | スムーズ3次ベジェ曲線を描く | `x2 y2 x y` | `current_point` を更新 | Tier2 | 前回の制御点を反射して使う |
-| `Q` | 2次ベジェ曲線を描く | `x1 y1 x y` | `current_point` を更新 | Tier2 | 将来的に Cubic へ変換可能 |
-| `T` | スムーズ2次ベジェ曲線を描く | `x y` | `current_point` を更新 | Tier2 | 前回の制御点依存 |
-| `A` | 楕円弧を描く | `rx ry x-axis-rotation large-arc-flag sweep-flag x y` | `current_point` を更新 | Tier1(高) | 実装難易度高 |
+| `S` | スムーズ3次ベジェ曲線を描く | `x2 y2 x y` | `current_point` を更新 | Tier1 | 前回の制御点を反射して Cubic に正規化 |
+| `Q` | 2次ベジェ曲線を描く | `x1 y1 x y` | `current_point` を更新 | Tier1 | Cubic に変換 |
+| `T` | スムーズ2次ベジェ曲線を描く | `x y` | `current_point` を更新 | Tier1 | 前回の制御点を反射して Cubic に変換 |
+| `A` | 楕円弧を描く | `rx ry x-axis-rotation large-arc-flag sweep-flag x y` | `current_point` を更新 | Tier1 | 最大90度の Cubic に分割 |
 
 ---
 
@@ -27,10 +27,10 @@
 | `v` | 現在位置から垂直方向へ相対直線を引く | `dy` | `current_point.y` を更新 | Tier1 | `LineTo(current.x, current.y + dy)` に正規化可能 |
 | `c` | 現在位置基準の相対3次ベジェ曲線を描く | `dx1 dy1 dx2 dy2 dx dy` | `current_point` を更新 | Tier1 | 制御点2つ + 終点すべて相対値 |
 | `z` | 現在のサブパスを閉じる | なし | `current_point` を `subpath_start` に戻す | Tier1 | `Z` と同義 |
-| `s` | 相対スムーズ3次ベジェ曲線を描く | `dx2 dy2 dx dy` | `current_point` を更新 | Tier2 | 前回の制御点を反射して使う |
-| `q` | 相対2次ベジェ曲線を描く | `dx1 dy1 dx dy` | `current_point` を更新 | Tier2 | 将来的に Cubic へ変換可能 |
-| `t` | 相対スムーズ2次ベジェ曲線を描く | `dx dy` | `current_point` を更新 | Tier2 | 前回の制御点依存 |
-| `a` | 相対楕円弧を描く | `rx ry x-axis-rotation large-arc-flag sweep-flag dx dy` | `current_point` を更新 | Tier1(高) | 終点のみ相対位置 |
+| `s` | 相対スムーズ3次ベジェ曲線を描く | `dx2 dy2 dx dy` | `current_point` を更新 | Tier1 | 前回の制御点を反射して Cubic に正規化 |
+| `q` | 相対2次ベジェ曲線を描く | `dx1 dy1 dx dy` | `current_point` を更新 | Tier1 | Cubic に変換 |
+| `t` | 相対スムーズ2次ベジェ曲線を描く | `dx dy` | `current_point` を更新 | Tier1 | 前回の制御点を反射して Cubic に変換 |
+| `a` | 相対楕円弧を描く | `rx ry x-axis-rotation large-arc-flag sweep-flag dx dy` | `current_point` を更新 | Tier1 | 終点のみ相対位置、最大90度の Cubic に分割 |
 
 ---
 
@@ -40,7 +40,8 @@
 |--------|----|------|
 | `current_point` | `Point` | 現在位置。相対座標解釈の基準 |
 | `subpath_start` | `Point` | `Z` / `z` で戻る開始点 |
-| `last_control_point` | `Point` or `std::optional<Point>` | `S` / `s` / `T` / `t` 用の将来拡張 |
+| `previous_cubic_control_point` | `Point` + 有効フラグ | `S` / `s` 用の反射元 |
+| `previous_quadratic_control_point` | `Point` + 有効フラグ | `T` / `t` 用の反射元 |
 
 ---
 
@@ -52,6 +53,10 @@
 | `h` | `LineTo(current.x + dx, current.y)` |
 | `V` | `LineTo(current.x, y)` |
 | `v` | `LineTo(current.x, current.y + dy)` |
+| `C` / `c`, `S` / `s` | 絶対座標の `CubicBezierTo` |
+| `Q` / `q`, `T` / `t` | 2次制御点を使う `CubicBezierTo` |
+| `A` / `a` | 中心表現へ変換後、最大90度の `CubicBezierTo` 群 |
+| `Z` / `z` | points が空の `ClosePath` |
 | 小文字コマンド | 絶対座標へ変換して保持 |
 | `M` / `m` の2組目以降 | `LineTo` 系として扱う |
 
@@ -61,22 +66,13 @@
 
 | Tier | 意味 |
 |------|------|
-| Tier1 | MVP必須 |
-| Tier1(高) | MVP候補だが難易度高 |
-| Tier2 | 後回しでよい拡張範囲 |
+| Tier1 | SVG path の入力で必須。全コマンドを対象とする |
 
 ---
 
 ## ■ 実装優先順（推奨）
 
-1. `M` / `m`
-2. `L` / `l`
-3. `H` / `h`
-4. `V` / `v`
-5. `Z` / `z`
-6. `C` / `c`
-7. `A` / `a`
-8. `S` / `s`, `Q` / `q`, `T` / `t`
+1. `M/m`, `L/l`, `H/h`, `V/v`, `C/c`, `S/s`, `Q/q`, `T/t`, `A/a`, `Z/z`
 
 ---
 

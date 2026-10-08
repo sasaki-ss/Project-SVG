@@ -350,4 +350,34 @@ TEST(SvgPathParserTest, test_boundary_005) {
     expect_command(result->at(0), PathCommandType::MoveTo, true, {"1e3", "20"});
 }
 
+TEST(SvgPathParserTest, ArcFlagsAreSplitFromFollowingCoordinates) {
+    const auto result = parse_path("a2 2 0 001.68-.92");
+
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(result->size(), 1U);
+    expect_command(
+        result->at(0),
+        PathCommandType::ArcTo,
+        false,
+        {"2", "2", "0", "0", "0", "1.68", "-.92"});
+}
+
+TEST(SvgPathParserTest, ArcFlagsAreSplitFromAdjacentEndpointCoordinate) {
+    const auto result = parse_path("a41 41 0 000 18");
+
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(result->size(), 1U);
+    expect_command(
+        result->at(0),
+        PathCommandType::ArcTo,
+        false,
+        {"41", "41", "0", "0", "0", "0", "18"});
+}
+
+TEST(SvgPathParserTest, InvalidArcFlagFailsToParse) {
+    const auto result = parse_path("A2 2 0 2 0 1 1");
+
+    EXPECT_FALSE(result.has_value());
+}
+
 }  // namespace

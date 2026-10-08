@@ -72,8 +72,8 @@ Project SVG では、`SvgPathInterpreter` の出口では原則として座標�
 | `ClosePath` | 現在の subpath を閉じる |
 
 この前提では、`H/h` と `V/v` は `LineTo` に正規化する。  
-`S/s` は `CubicBezierTo` に正規化可能。  
-`Q/q`、`T/t`、`A/a` は追加設計判断が必要。
+`C/c`、`S/s`、`Q/q`、`T/t`、`A/a` は `CubicBezierTo` に正規化する。  
+`Z/z` は空の points を持つ `ClosePath` に正規化する。  
 
 ---
 
@@ -419,15 +419,7 @@ VerticalTo ではXは変化しないため、通常は同じXになる。
 
 複数組を持てる。
 
-現状の `PathInstructionType` に `QuadraticBezierTo` がないため、設計判断が必要。
-
-候補は以下。
-
-1. `PathInstructionType::QuadraticBezierTo` を追加する
-2. `CubicBezierTo` に変換する
-3. MVPでは未対応にする
-
-`CubicBezierTo` に変換する場合は以下。
+`Q/q` は `CubicBezierTo` に変換する。変換式は以下。
 
 - `P0 = current_point`
 - `Q1 = quadratic_control`
@@ -497,9 +489,7 @@ VerticalTo ではXは変化しないため、通常は同じXになる。
 
 `current_point` が必要。
 
-現状の `PathInstructionType` に `QuadraticBezierTo` がないため、`Q/q` と同じ設計判断が必要。
-
-`CubicBezierTo` に変換する場合は以下。
+`T/t` は、反射して得た2次制御点を使って `CubicBezierTo` に変換する。
 
 - `P0 = current_point`
 - `Q1 = reflected_quadratic_control`
@@ -568,19 +558,18 @@ VerticalTo ではXは変化しないため、通常は同じXになる。
 - `large_arc_flag = 0 or 1`
 - `sweep_flag = 0 or 1`
 
-Arc は他コマンドより設計判断が重い。
+Arc は SVG 1.1 Appendix F.6 の端点表現から中心表現への変換を行い、
+1区間が90度以下になるよう `CubicBezierTo` に分割する。
 
-候補は以下。
-
-1. `PathInstructionType::ArcTo` を追加して保持する
-2. `CubicBezierTo` に分割変換する
-3. MVPでは未対応にする
+- `rx` または `ry` が 0 の場合は `LineTo` に変換する
+- 負の半径は絶対値を使う
+- 半径が小さく終点に届かない場合は仕様の半径補正を行う
+- 始点と終点が同じ場合は描画命令を出さない
+- `x_axis_rotation` を変換式へ反映する
 
 処理後は以下を更新する。
 
 - `current_point = end`
-
-Arc の描画や CubicBezier 分割は実装コストが高いため、`SvgPathInterpreter` の初期実装から分離する判断もあり。
 
 ---
 
@@ -621,57 +610,9 @@ Arc の描画や CubicBezier 分割は実装コストが高いため、`SvgPathI
 
 ---
 
-# 初期実装範囲の判断
+# Project SVG における方針
 
-## 無理なく対応できる範囲
-
-まず無理なく対応できる範囲は以下。
-
-- `M/m`
-- `L/l`
-- `H/h`
-- `V/v`
-- `C/c`
-- `Z/z`
-
-理由は以下。
-
-- 現状の `PathInstructionType` で表現できる
-- 相対座標から絶対座標への変換が単純
-- `H/h` と `V/v` は `LineTo` へ正規化できる
-- `M/m` の暗黙 `LineTo` も同じ仕組みで処理できる
-
-## 追加検討しやすい範囲
-
-追加検討しやすい範囲は以下。
-
-- `S/s`
-
-理由は以下。
-
-- `CubicBezierTo` に正規化できる
-- 追加で必要なのは直前の Cubic 系制御点管理のみ
-- `PathInstructionType` の追加なしで対応できる
-
-## 設計判断を分けた方がよい範囲
-
-設計判断を分けた方がよい範囲は以下。
-
-- `Q/q`
-- `T/t`
-- `A/a`
-
-理由は以下。
-
-- `Q/q` と `T/t` は `QuadraticBezierTo` を追加するか、`CubicBezierTo` に変換するか判断が必要
-- `A/a` は `ArcTo` を追加するか、`CubicBezierTo` に分割するか判断が必要
-- `A/a` は SVG の中でも計算が重く、初期実装に含めると実装範囲が広がりやすい
-
----
-
-# Project SVG における暫定方針
-
-`SvgPathInterpreter` の初期方針は以下とする。
+`SvgPathInterpreter` の方針は以下とする。
 
 | 項目 | 方針 |
 |---|---|
@@ -681,11 +622,12 @@ Arc の描画や CubicBezier 分割は実装コストが高いため、`SvgPathI
 | `H/h` | `LineTo` に正規化する |
 | `V/v` | `LineTo` に正規化する |
 | `M/m` 複数ペア | 2組目以降を `LineTo` として扱う |
+| `C/c`, `S/s` | 絶対座標の `CubicBezierTo` に正規化する |
+| `Q/q`, `T/t` | 2次ベジェの制御点から `CubicBezierTo` に変換する |
+| `A/a` | 端点表現を中心表現に変換し、90度以下の `CubicBezierTo` に分割する |
+| `Z/z` | points が空の `ClosePath` を出し、現在点を subpath 開始点へ戻す |
 | 不正値 | `std::nullopt` を返す |
-| 未対応コマンド | `std::nullopt` を返す |
-| 初期実装対象 | `M/m`, `L/l`, `H/h`, `V/v`, `C/c`, `Z/z` |
-| 追加検討 | `S/s` |
-| 別途判断 | `Q/q`, `T/t`, `A/a` |
+| 対象コマンド | `M/m`, `L/l`, `H/h`, `V/v`, `C/c`, `S/s`, `Q/q`, `T/t`, `A/a`, `Z/z` |
 
 `SvgPathInterpreter` は、path の構文解析ではなく、`PathCommand` を意味のある `PathInstruction` に変換する層とする。
 
