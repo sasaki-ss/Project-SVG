@@ -61,7 +61,7 @@ lucide (https://github.com/lucide-icons/lucide) のアイコンを、DXライブ
 - `docs/test_coding_guidelines.md`
 
 ## ブランチとマージ
-PR は使わない。作業はすべてこの PC 上のローカルブランチで行う。
+PR は使わない。開発ブランチは `develop` で、作業は `develop` から切ったローカルブランチで行う。
 
 | 段階 | 担当 | 方法 |
 |---|---|---|
@@ -69,6 +69,7 @@ PR は使わない。作業はすべてこの PC 上のローカルブランチ�
 | コミット | 実装者 | MCP `ai_tools` の `git_safe` で `commit-push --no-push` (シェルから git の書込みコマンドを打たない) |
 | レビュー | AI レビュアー | implementation-review の基準で PASS / PASS WITH FIXES / FAIL を判定する |
 | `develop` へのマージ | 委託側 (Claude) | PASS 後に `git_safe merge` で行う |
+| `develop` の push | 委託側 (Claude) | マージ後に適宜 `origin` へ push する |
 
 ## コミット時のルール
 - コミットメッセージは`docs/commit_guidelines.md`を準拠して出力すること。
