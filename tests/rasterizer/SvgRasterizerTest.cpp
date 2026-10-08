@@ -153,6 +153,26 @@ TEST_F(SvgRasterizerTest, SameAspectRatioScalesCoordinates) {
     EXPECT_EQ(get_alpha(*result, 1, 2), 0U);
 }
 
+TEST_F(SvgRasterizerTest, ViewBoxMinimumCoordinatesMapToOutputOrigin) {
+    const DrawShape draw_shape = make_shape(
+        make_closed_rectangle(10.0, 10.0, 1.0, 1.0),
+        true,
+        false);
+
+    const auto result = SvgRasterizer::rasterize(
+        {draw_shape},
+        SvgViewBox{10.0, 10.0, 10.0, 10.0},
+        10,
+        10,
+        RgbaColor{10U, 20U, 30U, 255U});
+
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(get_alpha(*result, 0, 0), 255U);
+    EXPECT_EQ(get_alpha(*result, 1, 0), 0U);
+    EXPECT_EQ(get_alpha(*result, 0, 1), 0U);
+    EXPECT_EQ(get_alpha(*result, 1, 1), 0U);
+}
+
 TEST_F(SvgRasterizerTest, MeetCentersContentWithHorizontalMargin) {
     const DrawShape draw_shape = make_shape(
         make_closed_rectangle(0.0, 0.0, 10.0, 10.0),
@@ -171,6 +191,29 @@ TEST_F(SvgRasterizerTest, MeetCentersContentWithHorizontalMargin) {
     EXPECT_EQ(get_alpha(*result, 5, 5), 255U);
     EXPECT_EQ(get_alpha(*result, 14, 5), 255U);
     EXPECT_EQ(get_alpha(*result, 15, 5), 0U);
+}
+
+TEST_F(SvgRasterizerTest, MeetCentersContentWithVerticalMargin) {
+    const DrawShape draw_shape = make_shape(
+        make_closed_rectangle(0.0, 0.0, 10.0, 10.0),
+        true,
+        false);
+
+    const auto result = SvgRasterizer::rasterize(
+        {draw_shape},
+        make_view_box(10.0, 10.0),
+        10,
+        20,
+        RgbaColor{10U, 20U, 30U, 255U});
+
+    ASSERT_TRUE(result.has_value());
+    for (int y = 0; y < 20; ++y) {
+        const std::uint8_t expected_alpha =
+            y >= 5 && y < 15 ? 255U : 0U;
+        for (int x = 0; x < 10; ++x) {
+            EXPECT_EQ(get_alpha(*result, x, y), expected_alpha);
+        }
+    }
 }
 
 TEST_F(SvgRasterizerTest, StrokeCenterPixelIsOpaque) {
@@ -192,6 +235,39 @@ TEST_F(SvgRasterizerTest, StrokeCenterPixelIsOpaque) {
     EXPECT_GT(get_alpha(*result, 10, 4), 0U);
     EXPECT_LT(get_alpha(*result, 10, 4), 255U);
     EXPECT_EQ(get_alpha(*result, 10, 2), 0U);
+}
+
+TEST_F(SvgRasterizerTest, AntialiasedStrokeRetainsStraightRgbColor) {
+    constexpr RgbaColor COLOR{43U, 127U, 211U, 255U};
+    constexpr int RGB_TOLERANCE = 1;
+    const DrawShape draw_shape = make_shape(
+        {make_move_to(1.0, 5.25), make_line_to(19.0, 5.25)},
+        false,
+        true,
+        2.0);
+
+    const auto result = SvgRasterizer::rasterize(
+        {draw_shape},
+        make_view_box(20.0, 10.0),
+        20,
+        10,
+        COLOR);
+
+    ASSERT_TRUE(result.has_value());
+    ASSERT_GT(get_alpha(*result, 10, 4), 0U);
+    ASSERT_LT(get_alpha(*result, 10, 4), 255U);
+    EXPECT_NEAR(
+        get_component(*result, 10, 4, 0U),
+        COLOR.red,
+        RGB_TOLERANCE);
+    EXPECT_NEAR(
+        get_component(*result, 10, 4, 1U),
+        COLOR.green,
+        RGB_TOLERANCE);
+    EXPECT_NEAR(
+        get_component(*result, 10, 4, 2U),
+        COLOR.blue,
+        RGB_TOLERANCE);
 }
 
 TEST_F(SvgRasterizerTest, RoundCapCoversSemicircleBeyondEndpoint) {
