@@ -295,28 +295,110 @@ SvgRasterizer::RasterPoint SvgRasterizer::calculate_midpoint(
     };
 }
 
+auto SvgRasterizer::make_stroke_segments(const std::vector<Subpath>& subpaths)
+    -> std::vector<Segment> {
+    std::vector<Segment> segments;
+    for (const Subpath& subpath : subpaths) {
+        if (subpath.points.size() < 2U) {
+            continue;
+        }
+
+        for (std::size_t index = 1; index < subpath.points.size(); ++index) {
+            segments.push_back(Segment{subpath.points[index - 1U], subpath.points[index]});
+        }
+        if (subpath.is_closed) {
+            segments.push_back(Segment{subpath.points.back(), subpath.points.front()});
+        }
+    }
+    return segments;
+}
+
+auto SvgRasterizer::make_fill_edges(const std::vector<Subpath>& subpaths)
+    -> std::vector<std::vector<Segment>> {
+    std::vector<std::vector<Segment>> edges_by_subpath;
+    for (const Subpath& subpath : subpaths) {
+        if (subpath.points.size() < 2U) {
+            continue;
+        }
+
+        std::vector<Segment> edges;
+        for (std::size_t index = 0; index < subpath.points.size(); ++index) {
+            edges.push_back(Segment{
+                subpath.points[index],
+                subpath.points[(index + 1U) % subpath.points.size()],
+            });
+        }
+        edges_by_subpath.push_back(std::move(edges));
+    }
+    return edges_by_subpath;
+}
+
+auto SvgRasterizer::calculate_pixel_bounds(
+    const std::vector<Subpath>& subpaths,
+    double reach,
+    int output_width,
+    int output_height)
+    -> std::optional<PixelBounds> {
+    double min_x = std::numeric_limits<double>::infinity();
+    double min_y = std::numeric_limits<double>::infinity();
+    double max_x = -std::numeric_limits<double>::infinity();
+    double max_y = -std::numeric_limits<double>::infinity();
+    for (const Subpath& subpath : subpaths) {
+        for (const RasterPoint& point : subpath.points) {
+            min_x = std::min(min_x, point.x);
+            min_y = std::min(min_y, point.y);
+            max_x = std::max(max_x, point.x);
+            max_y = std::max(max_y, point.y);
+        }
+    }
+    if (min_x > max_x || min_y > max_y) {
+        return std::nullopt;
+    }
+
+    const double last_x = static_cast<double>(output_width - 1);
+    const double last_y = static_cast<double>(output_height - 1);
+    PixelBounds bounds;
+    bounds.min_x = static_cast<int>(std::clamp(std::floor(min_x - reach), 0.0, last_x));
+    bounds.min_y = static_cast<int>(std::clamp(std::floor(min_y - reach), 0.0, last_y));
+    bounds.max_x = static_cast<int>(std::clamp(std::floor(max_x + reach), 0.0, last_x));
+    bounds.max_y = static_cast<int>(std::clamp(std::floor(max_y + reach), 0.0, last_y));
+    if (max_x + reach < 0.0 || max_y + reach < 0.0) {
+        return std::nullopt;
+    }
+    if (min_x - reach > last_x + 1.0 || min_y - reach > last_y + 1.0) {
+        return std::nullopt;
+    }
+    return bounds;
+}
+
+bool SvgRasterizer::is_segment_near_band(
+    double first_coordinate,
+    double second_coordinate,
+    double band_start,
+    double band_end,
+    double reach) {
+    const double segment_min = std::min(first_coordinate, second_coordinate);
+    const double segment_max = std::max(first_coordinate, second_coordinate);
+    return segment_max + reach >= band_start && segment_min - reach <= band_end;
+}
+
 bool SvgRasterizer::is_point_in_fill(
     const RasterPoint& sample_point,
-    const std::vector<Subpath>& subpaths) {
+    const std::vector<std::vector<Segment>>& edges_by_subpath) {
     int winding_number = 0;
-    for (const Subpath& subpath : subpaths) {
-        winding_number += calculate_winding_number(sample_point, subpath);
+    for (const std::vector<Segment>& edges : edges_by_subpath) {
+        winding_number += calculate_winding_number(sample_point, edges);
     }
     return winding_number != 0;
 }
 
 int SvgRasterizer::calculate_winding_number(
     const RasterPoint& sample_point,
-    const Subpath& subpath) {
-    if (subpath.points.size() < 2U) {
-        return 0;
-    }
-
+    const std::vector<Segment>& edges) {
     int winding_number = 0;
-    for (std::size_t index = 0; index < subpath.points.size(); ++index) {
-        const RasterPoint& segment_start = subpath.points[index];
-        const RasterPoint& segment_end = subpath.points[
-            (index + 1U) % subpath.points.size()];
+    for (const Segment& edge : edges) {
+        const RasterPoint& segment_start = edge.start;
+        const RasterPoint& segment_end = edge.end;
         if (is_point_on_line_segment(sample_point, segment_start, segment_end)) {
             return 1;
         }
@@ -371,38 +453,13 @@ bool SvgRasterizer::is_point_on_line_segment(
 
 bool SvgRasterizer::is_point_in_stroke(
     const RasterPoint& sample_point,
-    const std::vector<Subpath>& subpaths,
-    double stroke_width) {
-    if (stroke_width <= 0.0) {
-        return false;
-    }
-
-    const double radius = stroke_width / 2.0;
-    for (const Subpath& subpath : subpaths) {
-        if (subpath.points.size() < 2U) {
-            continue;
-        }
-
-        for (std::size_t index = 1; index < subpath.points.size(); ++index) {
-            if (is_point_in_round_segment(
-                    sample_point,
-                    subpath.points[index - 1U],
-                    subpath.points[index],
-                    radius)) {
-                return true;
-            }
-        }
-
-        if (subpath.is_closed &&
-            is_point_in_round_segment(
-                sample_point,
-                subpath.points.back(),
-                subpath.points.front(),
-                radius)) {
+    const std::vector<Segment>& segments,
+    double radius) {
+    for (const Segment& segment : segments) {
+        if (is_point_in_round_segment(sample_point, segment.start, segment.end, radius)) {
             return true;
         }
     }
-
     return false;
 }
 
@@ -462,8 +519,78 @@ void SvgRasterizer::rasterize_draw_shape(
     const draw::DrawShape& draw_shape,
     const std::vector<Subpath>& subpaths,
     double stroke_width) {
-    for (int pixel_y = 0; pixel_y < output_height; ++pixel_y) {
-        for (int pixel_x = 0; pixel_x < output_width; ++pixel_x) {
+    const bool has_visible_stroke = draw_shape.has_stroke && stroke_width > 0.0;
+    if (!draw_shape.has_fill && !has_visible_stroke) {
+        return;
+    }
+
+    const double radius = stroke_width / 2.0;
+    const double stroke_reach = radius + CULLING_MARGIN;
+    std::vector<Segment> stroke_segments;
+    if (has_visible_stroke) {
+        stroke_segments = make_stroke_segments(subpaths);
+    }
+    std::vector<std::vector<Segment>> fill_edges;
+    if (draw_shape.has_fill) {
+        fill_edges = make_fill_edges(subpaths);
+    }
+
+    const double bounds_reach = has_visible_stroke ? stroke_reach : CULLING_MARGIN;
+    const auto bounds = calculate_pixel_bounds(
+        subpaths,
+        bounds_reach,
+        output_width,
+        output_height);
+    if (!bounds.has_value()) {
+        return;
+    }
+
+    std::vector<Segment> row_stroke_segments;
+    std::vector<Segment> pixel_stroke_segments;
+    std::vector<std::vector<Segment>> row_fill_edges(fill_edges.size());
+    for (int pixel_y = bounds->min_y; pixel_y <= bounds->max_y; ++pixel_y) {
+        const double row_start = static_cast<double>(pixel_y);
+        const double row_end = row_start + 1.0;
+
+        row_stroke_segments.clear();
+        for (const Segment& segment : stroke_segments) {
+            if (is_segment_near_band(
+                    segment.start.y, segment.end.y, row_start, row_end, stroke_reach)) {
+                row_stroke_segments.push_back(segment);
+            }
+        }
+
+        bool has_row_fill_edges = false;
+        for (std::size_t subpath_index = 0; subpath_index < fill_edges.size(); ++subpath_index) {
+            std::vector<Segment>& row_edges = row_fill_edges[subpath_index];
+            row_edges.clear();
+            for (const Segment& edge : fill_edges[subpath_index]) {
+                if (is_segment_near_band(
+                        edge.start.y, edge.end.y, row_start, row_end, CULLING_MARGIN)) {
+                    row_edges.push_back(edge);
+                }
+            }
+            has_row_fill_edges = has_row_fill_edges || !row_edges.empty();
+        }
+        if (row_stroke_segments.empty() && !has_row_fill_edges) {
+            continue;
+        }
+
+        for (int pixel_x = bounds->min_x; pixel_x <= bounds->max_x; ++pixel_x) {
+            const double column_start = static_cast<double>(pixel_x);
+            const double column_end = column_start + 1.0;
+
+            pixel_stroke_segments.clear();
+            for (const Segment& segment : row_stroke_segments) {
+                if (is_segment_near_band(
+                        segment.start.x, segment.end.x, column_start, column_end, stroke_reach)) {
+                    pixel_stroke_segments.push_back(segment);
+                }
+            }
+            if (pixel_stroke_segments.empty() && !has_row_fill_edges) {
+                continue;
+            }
+
             const std::size_t pixel_index =
                 static_cast<std::size_t>(pixel_y) * static_cast<std::size_t>(output_width) +
                 static_cast<std::size_t>(pixel_x);
@@ -483,14 +610,15 @@ void SvgRasterizer::rasterize_draw_shape(
                         (static_cast<double>(sample_y) + 0.5) /
                         static_cast<double>(SUPERSAMPLE_COUNT);
                     const RasterPoint sample_point{
-                        static_cast<double>(pixel_x) + offset_x,
-                        static_cast<double>(pixel_y) + offset_y,
+                        column_start + offset_x,
+                        row_start + offset_y,
                     };
                     const bool is_filled =
-                        draw_shape.has_fill && is_point_in_fill(sample_point, subpaths);
+                        has_row_fill_edges && is_point_in_fill(sample_point, row_fill_edges);
                     const bool is_stroked =
-                        draw_shape.has_stroke &&
-                        is_point_in_stroke(sample_point, subpaths, stroke_width);
+                        !is_filled &&
+                        !pixel_stroke_segments.empty() &&
+                        is_point_in_stroke(sample_point, pixel_stroke_segments, radius);
                     if (is_filled || is_stroked) {
                         coverage = static_cast<SampleCoverage>(coverage | sample_bit);
                     }

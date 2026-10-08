@@ -34,6 +34,18 @@ private:
         bool is_closed;
     };
 
+    struct Segment {
+        RasterPoint start;
+        RasterPoint end;
+    };
+
+    struct PixelBounds {
+        int min_x;
+        int min_y;
+        int max_x;
+        int max_y;
+    };
+
     struct Transform {
         double scale;
         double offset_x;
@@ -50,6 +62,7 @@ private:
     static constexpr int MAX_CUBIC_SUBDIVISION_DEPTH = 16;
     static constexpr double CUBIC_FLATTEN_TOLERANCE = 0.25;
     static constexpr double GEOMETRY_EPSILON = 1e-9;
+    static constexpr double CULLING_MARGIN = 1.0;
 
     SvgRasterizer() = delete;
 
@@ -85,20 +98,36 @@ private:
     static RasterPoint calculate_midpoint(
         const RasterPoint& first_point,
         const RasterPoint& second_point);
+    static auto make_stroke_segments(const std::vector<Subpath>& subpaths)
+        -> std::vector<Segment>;
+    static auto make_fill_edges(const std::vector<Subpath>& subpaths)
+        -> std::vector<std::vector<Segment>>;
+    static auto calculate_pixel_bounds(
+        const std::vector<Subpath>& subpaths,
+        double reach,
+        int output_width,
+        int output_height)
+        -> std::optional<PixelBounds>;
+    static bool is_segment_near_band(
+        double first_coordinate,
+        double second_coordinate,
+        double band_start,
+        double band_end,
+        double reach);
     static bool is_point_in_fill(
         const RasterPoint& sample_point,
-        const std::vector<Subpath>& subpaths);
+        const std::vector<std::vector<Segment>>& edges_by_subpath);
     static int calculate_winding_number(
         const RasterPoint& sample_point,
-        const Subpath& subpath);
+        const std::vector<Segment>& edges);
     static bool is_point_on_line_segment(
         const RasterPoint& sample_point,
         const RasterPoint& segment_start,
         const RasterPoint& segment_end);
     static bool is_point_in_stroke(
         const RasterPoint& sample_point,
-        const std::vector<Subpath>& subpaths,
-        double stroke_width);
+        const std::vector<Segment>& segments,
+        double radius);
     static bool is_point_in_round_segment(
         const RasterPoint& sample_point,
         const RasterPoint& segment_start,
