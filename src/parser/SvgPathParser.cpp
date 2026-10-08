@@ -87,7 +87,7 @@ bool SvgPathParser::finalize_command(PathCommand& command) {
 }
 
 bool SvgPathParser::is_command(char c) {
-    char command = std::toupper(static_cast<unsigned char>(c));
+    char command = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
     return PATH_COMMAND_TYPE.find(command) != PATH_COMMAND_TYPE.end();
 }
 
@@ -137,7 +137,7 @@ auto SvgPathParser::parse_command_type(const std::string& token) -> std::optiona
         return std::nullopt;
     }
 
-    char command = std::toupper(static_cast<unsigned char>(token.at(0)));
+    char command = static_cast<char>(std::toupper(static_cast<unsigned char>(token.at(0))));
     auto it = PATH_COMMAND_TYPE.find(command);
     if(it != PATH_COMMAND_TYPE.end()) {
         return it->second;
