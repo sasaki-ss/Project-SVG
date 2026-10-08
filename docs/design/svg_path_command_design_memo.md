@@ -71,9 +71,9 @@ Project SVG では、`SvgPathInterpreter` の出口では原則として座標�
 | `CubicBezierTo` | 現在位置から3次ベジェ曲線を引く |
 | `ClosePath` | 現在の subpath を閉じる |
 
-この前提では、`H/h` と `V/v` は `LineTo` に正規化する。
-`C/c`、`S/s`、`Q/q`、`T/t`、`A/a` は `CubicBezierTo` に正規化する。
-`Z/z` は空の points を持つ `ClosePath` に正規化する。
+この前提では、`H/h` と `V/v` は `LineTo` に正規化する。  
+`C/c`、`S/s`、`Q/q`、`T/t`、`A/a` は `CubicBezierTo` に正規化する。  
+`Z/z` は空の points を持つ `ClosePath` に正規化する。  
 
 ---
 
