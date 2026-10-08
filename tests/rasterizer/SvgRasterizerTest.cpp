@@ -472,6 +472,71 @@ TEST_F(SvgRasterizerTest, PartialCoverageScalesAlphaByGroupOpacity) {
         ALPHA_TOLERANCE);
 }
 
+TEST_F(SvgRasterizerTest, ZeroGroupOpacityProducesFullyTransparentImage) {
+    const DrawShape draw_shape = make_shape(
+        make_closed_rectangle(2.0, 2.0, 6.0, 6.0),
+        true,
+        true,
+        2.0);
+
+    const auto result = SvgRasterizer::rasterize(
+        {draw_shape},
+        make_view_box(10.0, 10.0),
+        10,
+        10,
+        RgbaColor{10U, 20U, 30U, 0U});
+
+    ASSERT_TRUE(result.has_value());
+    for (const std::uint8_t channel : result->pixels) {
+        EXPECT_EQ(channel, 0U);
+    }
+}
+
+TEST_F(SvgRasterizerTest, PixelsScaledToZeroAlphaHaveZeroRgb) {
+    constexpr std::uint8_t MINIMUM_GROUP_OPACITY = 1U;
+    const DrawShape draw_shape = make_shape(
+        {make_move_to(1.0, 5.25), make_line_to(19.0, 5.25)},
+        false,
+        true,
+        2.0);
+
+    const auto opaque_result = SvgRasterizer::rasterize(
+        {draw_shape},
+        make_view_box(20.0, 10.0),
+        20,
+        10,
+        RgbaColor{10U, 20U, 30U, 255U});
+    const auto transparent_result = SvgRasterizer::rasterize(
+        {draw_shape},
+        make_view_box(20.0, 10.0),
+        20,
+        10,
+        RgbaColor{10U, 20U, 30U, MINIMUM_GROUP_OPACITY});
+
+    ASSERT_TRUE(opaque_result.has_value());
+    ASSERT_TRUE(transparent_result.has_value());
+    int pixels_scaled_to_zero = 0;
+    for (int y = 0; y < transparent_result->height; ++y) {
+        for (int x = 0; x < transparent_result->width; ++x) {
+            if (get_alpha(*opaque_result, x, y) > 0U
+                && get_alpha(*transparent_result, x, y) == 0U) {
+                ++pixels_scaled_to_zero;
+            }
+        }
+    }
+    ASSERT_GT(pixels_scaled_to_zero, 0);
+
+    const std::vector<std::uint8_t>& pixels = transparent_result->pixels;
+    for (std::size_t byte_index = 0U; byte_index < pixels.size(); byte_index += 4U) {
+        if (pixels[byte_index + 3U] != 0U) {
+            continue;
+        }
+        EXPECT_EQ(pixels[byte_index], 0U);
+        EXPECT_EQ(pixels[byte_index + 1U], 0U);
+        EXPECT_EQ(pixels[byte_index + 2U], 0U);
+    }
+}
+
 TEST_F(SvgRasterizerTest, FilledSquareCoverageMatchesArea) {
     constexpr double EXPECTED_AREA = 64.0;
     constexpr double AREA_TOLERANCE = 0.01;
