@@ -14,14 +14,14 @@ SVGファイルを入力として受け取り、指定した幅・高さに応�
 ```sh
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 cmake --build build --config Release
-ctest --test-dir build -C Release --output-on-failure
+cd build && ctest -C Release --output-on-failure
 ```
 
 ### MinGW-w64
 ```sh
 cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 cmake --build build
-ctest --test-dir build --output-on-failure
+cd build && ctest --output-on-failure
 ```
 
 ### Build library target only

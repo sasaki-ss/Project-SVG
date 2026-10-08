@@ -36,7 +36,7 @@ cmake --build build
 ビルド後、以下でテストを実行します。
 
 ```bash
-ctest --test-dir build --output-on-failure
+cd build && ctest --output-on-failure
 ```
 
 個別テストを実行したい場合は、生成されたテスト実行ファイル (`project_svg_<層>_tests`) を直接実行してください。
