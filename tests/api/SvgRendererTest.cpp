@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <string_view>
 
@@ -37,6 +38,34 @@ TEST(SvgRendererTest, RendersLucideStyleSvgString) {
     EXPECT_EQ(result->pixels[pixel_index + 1U], 34U);
     EXPECT_EQ(result->pixels[pixel_index + 2U], 56U);
     EXPECT_EQ(result->pixels[pixel_index + 3U], 255U);
+}
+
+TEST(SvgRendererTest, CrossingStrokesDoNotExceedGroupOpacity) {
+    constexpr std::uint8_t GROUP_OPACITY = 128U;
+    const std::string_view svg_content = R"svg(
+<svg
+    viewBox="0 0 24 24"
+    width="24"
+    height="24"
+    stroke="currentColor"
+    fill="none"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round">
+    <path d="M3 12H21"/>
+    <path d="M12 3V21"/>
+</svg>
+)svg";
+
+    const auto result = SvgRenderer::render_from_string(
+        svg_content,
+        24,
+        24,
+        RgbaColor{12U, 34U, 56U, GROUP_OPACITY});
+
+    ASSERT_TRUE(result.has_value());
+    const std::size_t pixel_index = (12U * 24U + 12U) * 4U;
+    EXPECT_EQ(result->pixels[pixel_index + 3U], GROUP_OPACITY);
 }
 
 TEST(SvgRendererTest, RendersSvgFileFromConfiguredFixturePath) {

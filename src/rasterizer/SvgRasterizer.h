@@ -118,6 +118,9 @@ private:
         const std::vector<Subpath>& subpaths,
         double stroke_width,
         const RgbaColor& color);
+    static void apply_group_opacity(
+        RgbaImage& image,
+        std::uint8_t group_opacity);
     static auto make_output_image(
         int output_width,
         int output_height,
