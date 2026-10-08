@@ -45,11 +45,17 @@ std::optional<InterpretedSvg> SvgElementInterpreter::interpret(const parser::Ext
     interpreted_svg.root_style.stroke_width = *parsed_stroke_width;
     interpreted_svg.root_style.stroke_linecap = *parsed_stroke_linecap;
     interpreted_svg.root_style.stroke_linejoin = *parsed_stroke_linejoin;
-    interpreted_svg.shapes = traverse_child_nodes(root);
+    const auto shapes = traverse_child_nodes(root);
+    if (!shapes.has_value()) {
+        return std::nullopt;
+    }
+
+    interpreted_svg.shapes = *shapes;
     return interpreted_svg;
 }
 
-std::vector<SvgShape> SvgElementInterpreter::traverse_child_nodes(const parser::ExtractedNode& node) {
+std::optional<std::vector<SvgShape>> SvgElementInterpreter::traverse_child_nodes(
+    const parser::ExtractedNode& node) {
     std::vector<SvgShape> shapes;
 
     for (const auto& child_node : node.children) {
@@ -57,9 +63,19 @@ std::vector<SvgShape> SvgElementInterpreter::traverse_child_nodes(const parser::
         if (parsed_shape.has_value()) {
             shapes.push_back(*parsed_shape);
         }
+        if (SvgShapeInterpreter::is_shape_element(child_node.element_name)
+            && !parsed_shape.has_value()) {
+            return std::nullopt;
+        }
 
         const auto child_shapes = traverse_child_nodes(child_node);
-        shapes.insert(shapes.end(), child_shapes.begin(), child_shapes.end());
+        if (!child_shapes.has_value()) {
+            return std::nullopt;
+        }
+        shapes.insert(
+            shapes.end(),
+            child_shapes->begin(),
+            child_shapes->end());
     }
 
     return shapes;
