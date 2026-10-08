@@ -23,6 +23,9 @@ private:
     auto read_parameter(const std::string& d, int& index) -> std::optional<std::string>;
     auto normalize_arc_parameters(const std::vector<std::string>& parameters)
         -> std::optional<std::vector<std::string>>;
+    bool push_finalized_command(
+        std::optional<PathCommand>& command,
+        std::vector<PathCommand>& path_commands);
     bool finalize_command(PathCommand& command);
     bool validate_command(const PathCommand& command);
 };

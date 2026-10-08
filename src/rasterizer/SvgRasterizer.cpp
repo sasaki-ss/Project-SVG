@@ -99,98 +99,127 @@ auto SvgRasterizer::make_subpaths(
     const std::vector<interpreter::PathInstruction>& path_instructions,
     const Transform& transform)
     -> std::optional<std::vector<Subpath>> {
-    std::vector<Subpath> subpaths;
-    std::optional<Subpath> current_subpath;
-    std::optional<RasterPoint> current_point;
-    std::optional<RasterPoint> subpath_start;
-
+    SubpathBuildState state;
     for (const interpreter::PathInstruction& instruction : path_instructions) {
-        if (instruction.type == interpreter::PathInstructionType::MoveTo) {
-            if (instruction.points.size() != 1U) {
-                return std::nullopt;
-            }
-            if (current_subpath.has_value()) {
-                subpaths.push_back(std::move(*current_subpath));
-            }
-
-            const auto transformed_point = transform_point(instruction.points[0], transform);
-            if (!transformed_point.has_value()) {
-                return std::nullopt;
-            }
-
-            current_subpath = Subpath{{*transformed_point}, false};
-            current_point = *transformed_point;
-            subpath_start = *transformed_point;
-            continue;
+        if (!apply_path_instruction(state, instruction, transform)) {
+            return std::nullopt;
         }
-
-        if (instruction.type == interpreter::PathInstructionType::LineTo) {
-            if (instruction.points.size() != 1U || !current_point.has_value()) {
-                return std::nullopt;
-            }
-
-            const auto transformed_point = transform_point(instruction.points[0], transform);
-            if (!transformed_point.has_value()) {
-                return std::nullopt;
-            }
-            if (!current_subpath.has_value()) {
-                current_subpath = Subpath{{*current_point}, false};
-                subpath_start = *current_point;
-            }
-
-            current_subpath->points.push_back(*transformed_point);
-            current_point = *transformed_point;
-            continue;
-        }
-
-        if (instruction.type == interpreter::PathInstructionType::CubicBezierTo) {
-            if (instruction.points.size() != 3U || !current_point.has_value()) {
-                return std::nullopt;
-            }
-
-            const auto control_point1 = transform_point(instruction.points[0], transform);
-            const auto control_point2 = transform_point(instruction.points[1], transform);
-            const auto end_point = transform_point(instruction.points[2], transform);
-            if (!control_point1.has_value() ||
-                !control_point2.has_value() ||
-                !end_point.has_value()) {
-                return std::nullopt;
-            }
-            if (!current_subpath.has_value()) {
-                current_subpath = Subpath{{*current_point}, false};
-                subpath_start = *current_point;
-            }
-
-            append_cubic_bezier(
-                *current_subpath,
-                *current_point,
-                *control_point1,
-                *control_point2,
-                *end_point,
-                0);
-            current_point = *end_point;
-            continue;
-        }
-
-        if (instruction.type == interpreter::PathInstructionType::ClosePath) {
-            if (!instruction.points.empty() || !current_subpath.has_value()) {
-                return std::nullopt;
-            }
-
-            current_subpath->is_closed = true;
-            subpaths.push_back(std::move(*current_subpath));
-            current_subpath.reset();
-            current_point = subpath_start;
-            continue;
-        }
-
-        return std::nullopt;
     }
 
-    if (current_subpath.has_value()) {
-        subpaths.push_back(std::move(*current_subpath));
+    if (state.current_subpath.has_value()) {
+        state.subpaths.push_back(std::move(*state.current_subpath));
     }
-    return subpaths;
+    return std::move(state.subpaths);
+}
+
+bool SvgRasterizer::apply_path_instruction(
+    SubpathBuildState& state,
+    const interpreter::PathInstruction& instruction,
+    const Transform& transform) {
+    switch (instruction.type) {
+        case interpreter::PathInstructionType::MoveTo:
+            return apply_move_to(state, instruction, transform);
+        case interpreter::PathInstructionType::LineTo:
+            return apply_line_to(state, instruction, transform);
+        case interpreter::PathInstructionType::CubicBezierTo:
+            return apply_cubic_bezier_to(state, instruction, transform);
+        case interpreter::PathInstructionType::ClosePath:
+            return apply_close_path(state, instruction);
+        default:
+            return false;
+    }
+}
+
+bool SvgRasterizer::apply_move_to(
+    SubpathBuildState& state,
+    const interpreter::PathInstruction& instruction,
+    const Transform& transform) {
+    if (instruction.points.size() != 1U) {
+        return false;
+    }
+    if (state.current_subpath.has_value()) {
+        state.subpaths.push_back(std::move(*state.current_subpath));
+    }
+
+    const auto transformed_point = transform_point(instruction.points[0], transform);
+    if (!transformed_point.has_value()) {
+        return false;
+    }
+
+    state.current_subpath = Subpath{{*transformed_point}, false};
+    state.current_point = *transformed_point;
+    state.subpath_start = *transformed_point;
+    return true;
+}
+
+bool SvgRasterizer::apply_line_to(
+    SubpathBuildState& state,
+    const interpreter::PathInstruction& instruction,
+    const Transform& transform) {
+    if (instruction.points.size() != 1U || !state.current_point.has_value()) {
+        return false;
+    }
+
+    const auto transformed_point = transform_point(instruction.points[0], transform);
+    if (!transformed_point.has_value()) {
+        return false;
+    }
+
+    begin_subpath_at_current_point(state);
+    state.current_subpath->points.push_back(*transformed_point);
+    state.current_point = *transformed_point;
+    return true;
+}
+
+bool SvgRasterizer::apply_cubic_bezier_to(
+    SubpathBuildState& state,
+    const interpreter::PathInstruction& instruction,
+    const Transform& transform) {
+    if (instruction.points.size() != 3U || !state.current_point.has_value()) {
+        return false;
+    }
+
+    const auto control_point1 = transform_point(instruction.points[0], transform);
+    const auto control_point2 = transform_point(instruction.points[1], transform);
+    const auto end_point = transform_point(instruction.points[2], transform);
+    if (!control_point1.has_value() ||
+        !control_point2.has_value() ||
+        !end_point.has_value()) {
+        return false;
+    }
+
+    begin_subpath_at_current_point(state);
+    append_cubic_bezier(
+        *state.current_subpath,
+        *state.current_point,
+        *control_point1,
+        *control_point2,
+        *end_point,
+        0);
+    state.current_point = *end_point;
+    return true;
+}
+
+bool SvgRasterizer::apply_close_path(
+    SubpathBuildState& state,
+    const interpreter::PathInstruction& instruction) {
+    if (!instruction.points.empty() || !state.current_subpath.has_value()) {
+        return false;
+    }
+
+    state.current_subpath->is_closed = true;
+    state.subpaths.push_back(std::move(*state.current_subpath));
+    state.current_subpath.reset();
+    state.current_point = state.subpath_start;
+    return true;
+}
+
+void SvgRasterizer::begin_subpath_at_current_point(SubpathBuildState& state) {
+    if (state.current_subpath.has_value()) {
+        return;
+    }
+    state.current_subpath = Subpath{{*state.current_point}, false};
+    state.subpath_start = *state.current_point;
 }
 
 auto SvgRasterizer::transform_point(

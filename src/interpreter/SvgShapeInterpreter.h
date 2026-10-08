@@ -43,6 +43,10 @@ private:
     static std::optional<SvgShape> interpret_polygon(const parser::ExtractedNode& node);
 
     static std::optional<std::vector<Point>> parse_points(std::string_view value);
+
+    static bool append_comma_separated_numbers(
+        std::string_view token,
+        std::vector<double>& parsed_values);
 };
 
 }

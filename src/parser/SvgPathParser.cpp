@@ -41,21 +41,17 @@ auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<Pat
     std::optional<PathCommand> current_command;
     for(const auto& token : *tokens) {
         std::optional<PathCommandType> command_type = parse_command_type(token);
-        if(!command_type.has_value()) {
-            if(!current_command.has_value()) {
-                return std::nullopt;
-            }
+        if(!command_type.has_value() && !current_command.has_value()) {
+            return std::nullopt;
+        }
 
+        if(!command_type.has_value()) {
             current_command->parameters.emplace_back(token);
             continue;
         }
 
-        if(current_command.has_value()) {
-            if(!finalize_command(*current_command)) {
-                return std::nullopt;
-            }
-
-            path_commands.emplace_back(std::move(*current_command));
+        if(!push_finalized_command(current_command, path_commands)) {
+            return std::nullopt;
         }
 
         PathCommand command;
@@ -64,14 +60,27 @@ auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<Pat
         current_command = std::move(command);
     }
 
-    if(current_command.has_value()) {
-        if(!finalize_command(*current_command)) {
-            return std::nullopt;
-        }
-        path_commands.emplace_back(std::move(*current_command));
+    if(!push_finalized_command(current_command, path_commands)) {
+        return std::nullopt;
     }
 
     return path_commands;
+}
+
+bool SvgPathParser::push_finalized_command(
+    std::optional<PathCommand>& command,
+    std::vector<PathCommand>& path_commands) {
+    if(!command.has_value()) {
+        return true;
+    }
+
+    if(!finalize_command(*command)) {
+        return false;
+    }
+
+    path_commands.emplace_back(std::move(*command));
+    command.reset();
+    return true;
 }
 
 bool SvgPathParser::finalize_command(PathCommand& command) {
@@ -116,17 +125,16 @@ auto SvgPathParser::tokenize_path(const std::string& d) -> std::optional<std::ve
             continue;
         }
 
-        if(is_parameter(c)) {
-            auto parameter = read_parameter(d, i);
-            if(!parameter.has_value()) {
-                return std::nullopt;
-            }
-
-            token.emplace_back(*parameter);
-            continue;
+        if(!is_parameter(c)) {
+            return std::nullopt;
         }
 
-        return std::nullopt;
+        auto parameter = read_parameter(d, i);
+        if(!parameter.has_value()) {
+            return std::nullopt;
+        }
+
+        token.emplace_back(*parameter);
     }
 
     return token;
@@ -167,13 +175,13 @@ auto SvgPathParser::read_parameter(const std::string& d, int& index) -> std::opt
             return parameter;
         }
 
-        if(c == '.') {
-            if(!has_dot) {
-                parameter.push_back(c);
-                has_dot = true;
-                continue;
-            }
+        if(c == '.' && !has_dot) {
+            parameter.push_back(c);
+            has_dot = true;
+            continue;
+        }
 
+        if(c == '.') {
             index = i;
             return parameter;
         }
@@ -212,13 +220,13 @@ auto SvgPathParser::normalize_arc_parameters(
         const bool is_arc_flag = parameter_position == LARGE_ARC_FLAG_INDEX
             || parameter_position == SWEEP_FLAG_INDEX;
 
-        if (is_arc_flag) {
-            const char flag = parameters[parameter_index][character_index];
-            if (flag != '0' && flag != '1') {
-                return std::nullopt;
-            }
+        const char current_character = parameters[parameter_index][character_index];
+        if (is_arc_flag && current_character != '0' && current_character != '1') {
+            return std::nullopt;
+        }
 
-            normalized_parameters.emplace_back(1, flag);
+        if (is_arc_flag) {
+            normalized_parameters.emplace_back(1, current_character);
             ++character_index;
             continue;
         }

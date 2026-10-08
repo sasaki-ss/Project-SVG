@@ -34,6 +34,13 @@ private:
         bool is_closed;
     };
 
+    struct SubpathBuildState {
+        std::vector<Subpath> subpaths;
+        std::optional<Subpath> current_subpath;
+        std::optional<RasterPoint> current_point;
+        std::optional<RasterPoint> subpath_start;
+    };
+
     struct Segment {
         RasterPoint start;
         RasterPoint end;
@@ -104,6 +111,26 @@ private:
         const std::vector<interpreter::PathInstruction>& path_instructions,
         const Transform& transform)
         -> std::optional<std::vector<Subpath>>;
+    static bool apply_path_instruction(
+        SubpathBuildState& state,
+        const interpreter::PathInstruction& instruction,
+        const Transform& transform);
+    static bool apply_move_to(
+        SubpathBuildState& state,
+        const interpreter::PathInstruction& instruction,
+        const Transform& transform);
+    static bool apply_line_to(
+        SubpathBuildState& state,
+        const interpreter::PathInstruction& instruction,
+        const Transform& transform);
+    static bool apply_cubic_bezier_to(
+        SubpathBuildState& state,
+        const interpreter::PathInstruction& instruction,
+        const Transform& transform);
+    static bool apply_close_path(
+        SubpathBuildState& state,
+        const interpreter::PathInstruction& instruction);
+    static void begin_subpath_at_current_point(SubpathBuildState& state);
     static auto transform_point(
         const interpreter::Point& point,
         const Transform& transform)

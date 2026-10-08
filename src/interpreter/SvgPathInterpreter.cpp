@@ -438,10 +438,6 @@ auto SvgPathInterpreter::interpret_arc_to(
     const PathCommand& command)
     -> std::optional<std::vector<PathInstruction>> {
     constexpr std::size_t ARC_PARAMETER_SIZE = 7;
-    constexpr std::size_t LARGE_ARC_FLAG_INDEX = 3;
-    constexpr std::size_t SWEEP_FLAG_INDEX = 4;
-    constexpr std::size_t END_POINT_INDEX = 5;
-    constexpr double MAX_ARC_SEGMENT_ANGLE = 1.57079632679489661923;
 
     const std::size_t parameter_size = command.parameters.size();
     if (!context.has_current_point
@@ -453,94 +449,137 @@ auto SvgPathInterpreter::interpret_arc_to(
     std::vector<PathInstruction> instructions;
     for (std::size_t index = 0; index < parameter_size;
          index += ARC_PARAMETER_SIZE) {
-        const auto parsed_radius_x = SvgInterpreterUtility::parse_double(
-            command.parameters[index]);
-        const auto parsed_radius_y = SvgInterpreterUtility::parse_double(
-            command.parameters[index + 1]);
-        const auto parsed_rotation = SvgInterpreterUtility::parse_double(
-            command.parameters[index + 2]);
-        const auto large_arc_flag = parse_arc_flag(
-            command.parameters[index + LARGE_ARC_FLAG_INDEX]);
-        const auto sweep_flag = parse_arc_flag(
-            command.parameters[index + SWEEP_FLAG_INDEX]);
-        const auto parsed_end_point = parse_point(
-            command,
-            index + END_POINT_INDEX);
-        if (!parsed_radius_x.has_value()
-            || !parsed_radius_y.has_value()
-            || !parsed_rotation.has_value()
-            || !large_arc_flag.has_value()
-            || !sweep_flag.has_value()
-            || !parsed_end_point.has_value()) {
+        if (!append_arc_instructions(command, index, instructions)) {
             return std::nullopt;
         }
-
-        const Point end_point = make_absolute_point(
-            *parsed_end_point,
-            command.is_absolute);
-        if (end_point.x == context.current_point.x
-            && end_point.y == context.current_point.y) {
-            context.current_point = end_point;
-            continue;
-        }
-
-        const double radius_x = std::abs(*parsed_radius_x);
-        const double radius_y = std::abs(*parsed_radius_y);
-        if (radius_x == 0.0 || radius_y == 0.0) {
-            PathInstruction instruction;
-            instruction.type = PathInstructionType::LineTo;
-            instruction.points = {end_point};
-            instructions.push_back(instruction);
-            context.current_point = end_point;
-            continue;
-        }
-
-        const auto arc = make_arc_center_parameters(
-            context.current_point,
-            end_point,
-            radius_x,
-            radius_y,
-            *parsed_rotation,
-            *large_arc_flag,
-            *sweep_flag);
-        if (!arc.has_value()) {
-            return std::nullopt;
-        }
-
-        const std::size_t segment_count = static_cast<std::size_t>(std::ceil(
-            std::abs(arc->angle_delta) / MAX_ARC_SEGMENT_ANGLE));
-        if (segment_count == 0) {
-            return std::nullopt;
-        }
-
-        const double segment_angle = arc->angle_delta
-            / static_cast<double>(segment_count);
-        for (std::size_t segment_index = 0;
-             segment_index < segment_count;
-             ++segment_index) {
-            CubicBezierPoints cubic = make_arc_segment(
-                *arc,
-                arc->start_angle
-                    + segment_angle * static_cast<double>(segment_index),
-                segment_angle);
-            if (segment_index + 1 == segment_count) {
-                cubic.end_point = end_point;
-            }
-
-            PathInstruction instruction;
-            instruction.type = PathInstructionType::CubicBezierTo;
-            instruction.points = {
-                cubic.control_point1,
-                cubic.control_point2,
-                cubic.end_point,
-            };
-            instructions.push_back(instruction);
-        }
-
-        context.current_point = end_point;
     }
 
     return instructions;
+}
+
+auto SvgPathInterpreter::parse_arc_parameters(
+    const PathCommand& command,
+    std::size_t index)
+    -> std::optional<ArcCommandParameters> {
+    constexpr std::size_t LARGE_ARC_FLAG_INDEX = 3;
+    constexpr std::size_t SWEEP_FLAG_INDEX = 4;
+    constexpr std::size_t END_POINT_INDEX = 5;
+
+    const auto parsed_radius_x = SvgInterpreterUtility::parse_double(
+        command.parameters[index]);
+    const auto parsed_radius_y = SvgInterpreterUtility::parse_double(
+        command.parameters[index + 1]);
+    const auto parsed_rotation = SvgInterpreterUtility::parse_double(
+        command.parameters[index + 2]);
+    const auto large_arc_flag = parse_arc_flag(
+        command.parameters[index + LARGE_ARC_FLAG_INDEX]);
+    const auto sweep_flag = parse_arc_flag(
+        command.parameters[index + SWEEP_FLAG_INDEX]);
+    const auto parsed_end_point = parse_point(
+        command,
+        index + END_POINT_INDEX);
+    if (!parsed_radius_x.has_value()
+        || !parsed_radius_y.has_value()
+        || !parsed_rotation.has_value()
+        || !large_arc_flag.has_value()
+        || !sweep_flag.has_value()
+        || !parsed_end_point.has_value()) {
+        return std::nullopt;
+    }
+
+    ArcCommandParameters parameters;
+    parameters.radius_x = *parsed_radius_x;
+    parameters.radius_y = *parsed_radius_y;
+    parameters.rotation = *parsed_rotation;
+    parameters.is_large_arc = *large_arc_flag;
+    parameters.is_sweep = *sweep_flag;
+    parameters.end_point = make_absolute_point(*parsed_end_point, command.is_absolute);
+    return parameters;
+}
+
+bool SvgPathInterpreter::append_arc_instructions(
+    const PathCommand& command,
+    std::size_t index,
+    std::vector<PathInstruction>& instructions) {
+    const auto parameters = parse_arc_parameters(command, index);
+    if (!parameters.has_value()) {
+        return false;
+    }
+
+    const Point end_point = parameters->end_point;
+    if (end_point.x == context.current_point.x
+        && end_point.y == context.current_point.y) {
+        context.current_point = end_point;
+        return true;
+    }
+
+    const double radius_x = std::abs(parameters->radius_x);
+    const double radius_y = std::abs(parameters->radius_y);
+    if (radius_x == 0.0 || radius_y == 0.0) {
+        PathInstruction instruction;
+        instruction.type = PathInstructionType::LineTo;
+        instruction.points = {end_point};
+        instructions.push_back(instruction);
+        context.current_point = end_point;
+        return true;
+    }
+
+    const auto arc = make_arc_center_parameters(
+        context.current_point,
+        end_point,
+        radius_x,
+        radius_y,
+        parameters->rotation,
+        parameters->is_large_arc,
+        parameters->is_sweep);
+    if (!arc.has_value()) {
+        return false;
+    }
+
+    if (!append_arc_segments(*arc, end_point, instructions)) {
+        return false;
+    }
+
+    context.current_point = end_point;
+    return true;
+}
+
+bool SvgPathInterpreter::append_arc_segments(
+    const ArcCenterParameters& arc,
+    const Point& end_point,
+    std::vector<PathInstruction>& instructions) {
+    constexpr double MAX_ARC_SEGMENT_ANGLE = 1.57079632679489661923;
+
+    const std::size_t segment_count = static_cast<std::size_t>(std::ceil(
+        std::abs(arc.angle_delta) / MAX_ARC_SEGMENT_ANGLE));
+    if (segment_count == 0) {
+        return false;
+    }
+
+    const double segment_angle = arc.angle_delta
+        / static_cast<double>(segment_count);
+    for (std::size_t segment_index = 0;
+         segment_index < segment_count;
+         ++segment_index) {
+        CubicBezierPoints cubic = make_arc_segment(
+            arc,
+            arc.start_angle
+                + segment_angle * static_cast<double>(segment_index),
+            segment_angle);
+        if (segment_index + 1 == segment_count) {
+            cubic.end_point = end_point;
+        }
+
+        PathInstruction instruction;
+        instruction.type = PathInstructionType::CubicBezierTo;
+        instruction.points = {
+            cubic.control_point1,
+            cubic.control_point2,
+            cubic.end_point,
+        };
+        instructions.push_back(instruction);
+    }
+    return true;
 }
 
 auto SvgPathInterpreter::parse_point(
