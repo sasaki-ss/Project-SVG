@@ -273,6 +273,24 @@ TEST(SvgPathInterpreterTest, SmoothCubicRelativeUsesCurrentPointWithoutCubicPred
     expect_cubic(result->at(2), {11.0, 11.0}, {13.0, 14.0}, {15.0, 16.0});
 }
 
+TEST(SvgPathInterpreterTest, SmoothCubicAfterQuadraticUsesCurrentPointAsFirstControlPoint) {
+    const auto result = interpret_commands({
+        make_move_to("0", "0"),
+        make_command(
+            PathCommandType::QuadraticBezierTo,
+            true,
+            {"3", "3", "6", "0"}),
+        make_command(
+            PathCommandType::SmoothCubicBezierTo,
+            true,
+            {"8", "9", "10", "11"}),
+    });
+
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(result->size(), 3U);
+    expect_cubic(result->at(2), {6.0, 0.0}, {8.0, 9.0}, {10.0, 11.0});
+}
+
 TEST(SvgPathInterpreterTest, QuadraticBezierAbsoluteConvertsToCubicBezier) {
     const auto result = interpret_commands({
         make_move_to("0", "0"),
@@ -346,6 +364,96 @@ TEST(SvgPathInterpreterTest, ArcAbsoluteQuarterCircleUsesOneCubicBezier) {
         {0.0, 1.0});
     const Point middle_point = evaluate_cubic({1.0, 0.0}, result->at(1), 0.5);
     EXPECT_NEAR(std::hypot(middle_point.x, middle_point.y), 1.0, ARC_RADIUS_TOLERANCE);
+}
+
+TEST(SvgPathInterpreterTest, ArcCounterclockwiseQuarterCircleUsesExpectedMiddlePoint) {
+    constexpr double ARC_RADIUS_TOLERANCE = 0.001;
+    const double expected_middle_coordinate = 1.0 - std::sqrt(2.0) / 2.0;
+
+    const auto result = interpret_commands({
+        make_move_to("1", "0"),
+        make_command(
+            PathCommandType::ArcTo,
+            true,
+            {"1", "1", "0", "0", "0", "0", "1"}),
+    });
+
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(result->size(), 2U);
+    ASSERT_EQ(result->at(1).type, PathInstructionType::CubicBezierTo);
+    ASSERT_EQ(result->at(1).points.size(), 3U);
+    const Point middle_point = evaluate_cubic({1.0, 0.0}, result->at(1), 0.5);
+    EXPECT_NEAR(
+        middle_point.x,
+        expected_middle_coordinate,
+        ARC_RADIUS_TOLERANCE);
+    EXPECT_NEAR(
+        middle_point.y,
+        expected_middle_coordinate,
+        ARC_RADIUS_TOLERANCE);
+}
+
+TEST(
+    SvgPathInterpreterTest,
+    ArcLargeSweepUsesThreeSegmentsInClockwiseOrder) {
+    const auto result = interpret_commands({
+        make_move_to("1", "0"),
+        make_command(
+            PathCommandType::ArcTo,
+            true,
+            {"1", "1", "0", "1", "1", "0", "1"}),
+    });
+
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(result->size(), 4U);
+    ASSERT_EQ(result->at(1).type, PathInstructionType::CubicBezierTo);
+    ASSERT_EQ(result->at(1).points.size(), 3U);
+    ASSERT_EQ(result->at(2).type, PathInstructionType::CubicBezierTo);
+    ASSERT_EQ(result->at(2).points.size(), 3U);
+    ASSERT_EQ(result->at(3).type, PathInstructionType::CubicBezierTo);
+    ASSERT_EQ(result->at(3).points.size(), 3U);
+    expect_point(result->at(1).points[2], 2.0, 1.0);
+    expect_point(result->at(2).points[2], 1.0, 2.0);
+    expect_point(result->at(3).points[2], 0.0, 1.0);
+}
+
+TEST(
+    SvgPathInterpreterTest,
+    ArcNegativeRadiiProduceSameInstructionsAsPositiveRadii) {
+    const auto positive_result = interpret_commands({
+        make_move_to("1", "0"),
+        make_command(
+            PathCommandType::ArcTo,
+            true,
+            {"1", "1", "0", "0", "1", "0", "1"}),
+    });
+    const auto negative_result = interpret_commands({
+        make_move_to("1", "0"),
+        make_command(
+            PathCommandType::ArcTo,
+            true,
+            {"-1", "-1", "0", "0", "1", "0", "1"}),
+    });
+
+    ASSERT_TRUE(positive_result.has_value());
+    ASSERT_TRUE(negative_result.has_value());
+    ASSERT_EQ(positive_result->size(), negative_result->size());
+    for (std::size_t instruction_index = 0;
+         instruction_index < positive_result->size();
+         ++instruction_index) {
+        const PathInstruction& positive_instruction = positive_result->at(instruction_index);
+        const PathInstruction& negative_instruction = negative_result->at(instruction_index);
+        EXPECT_EQ(positive_instruction.type, negative_instruction.type);
+        ASSERT_EQ(positive_instruction.points.size(), negative_instruction.points.size());
+        for (std::size_t point_index = 0;
+             point_index < positive_instruction.points.size();
+             ++point_index) {
+            expect_point(
+                negative_instruction.points[point_index],
+                positive_instruction.points[point_index].x,
+                positive_instruction.points[point_index].y);
+        }
+    }
 }
 
 TEST(SvgPathInterpreterTest, ArcRelativeQuarterCircleUsesRelativeEndpointOnly) {
