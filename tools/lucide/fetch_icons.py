@@ -29,10 +29,15 @@ def clone_icons(output_dir: Path) -> None:
         LUCIDE_REPOSITORY_URL,
         str(output_dir),
     ])
+    restrict_to_icons(output_dir)
+
+
+def restrict_to_icons(output_dir: Path) -> None:
     run_git(["sparse-checkout", "set", "--no-cone", "/icons/"], output_dir)
 
 
 def update_icons(output_dir: Path) -> None:
+    restrict_to_icons(output_dir)
     run_git(["fetch", "--depth", "1", "origin", "HEAD"], output_dir)
     run_git(["reset", "--hard", "FETCH_HEAD"], output_dir)
 
