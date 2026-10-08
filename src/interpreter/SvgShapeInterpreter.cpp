@@ -14,24 +14,44 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret(const parser::ExtractedNo
         return std::nullopt;
     }
 
+    std::optional<SvgShape> shape;
     switch (*element_type) {
         case SvgElementType::Path:
-            return interpret_path(node);
+            shape = interpret_path(node);
+            break;
         case SvgElementType::Circle:
-            return interpret_circle(node);
+            shape = interpret_circle(node);
+            break;
         case SvgElementType::Rect:
-            return interpret_rect(node);
+            shape = interpret_rect(node);
+            break;
         case SvgElementType::Line:
-            return interpret_line(node);
+            shape = interpret_line(node);
+            break;
         case SvgElementType::Ellipse:
-            return interpret_ellipse(node);
+            shape = interpret_ellipse(node);
+            break;
         case SvgElementType::Polyline:
-            return interpret_polyline(node);
+            shape = interpret_polyline(node);
+            break;
         case SvgElementType::Polygon:
-            return interpret_polygon(node);
+            shape = interpret_polygon(node);
+            break;
         default:
             return std::nullopt;
     }
+
+    if (!shape.has_value()) {
+        return std::nullopt;
+    }
+
+    shape->fill = SvgInterpreterUtility::find_attribute_value(node, "fill");
+    shape->stroke = SvgInterpreterUtility::find_attribute_value(node, "stroke");
+    return shape;
+}
+
+bool SvgShapeInterpreter::is_shape_element(std::string_view element_name) {
+    return interpret_element_type(element_name).has_value();
 }
 
 std::optional<SvgShape> SvgShapeInterpreter::interpret_path(const ExtractedNode& node) {

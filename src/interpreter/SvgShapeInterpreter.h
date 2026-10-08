@@ -20,6 +20,8 @@ class SvgShapeInterpreter {
 public:
     static std::optional<SvgShape> interpret(const parser::ExtractedNode& node);
 
+    static bool is_shape_element(std::string_view element_name);
+
 private:
     SvgShapeInterpreter() = delete;
 

@@ -35,7 +35,7 @@ private:
         const parser::ExtractedNode& node,
         std::string_view attribute_name);
 
-    static std::vector<SvgShape> traverse_child_nodes(
+    static std::optional<std::vector<SvgShape>> traverse_child_nodes(
         const parser::ExtractedNode& node);
 
     static std::optional<SvgViewBox> parse_view_box(std::string_view value);
