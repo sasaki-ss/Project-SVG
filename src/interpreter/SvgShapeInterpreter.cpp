@@ -202,19 +202,28 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret_polygon(const ExtractedNo
     return shape;
 }
 
+bool SvgShapeInterpreter::append_comma_separated_numbers(
+    std::string_view token,
+    std::vector<double>& parsed_values) {
+    const auto comma_separated_values = SvgInterpreterUtility::split_by_delimiter(token, ',');
+    for (const auto number_text : comma_separated_values) {
+        const auto parsed_number = SvgInterpreterUtility::parse_double(number_text);
+        if (!parsed_number.has_value()) {
+            return false;
+        }
+
+        parsed_values.push_back(*parsed_number);
+    }
+    return true;
+}
+
 std::optional<std::vector<Point>> SvgShapeInterpreter::parse_points(std::string_view value) {
     const auto tokens = SvgInterpreterUtility::split_by_delimiter(value, ' ');
     std::vector<double> parsed_values;
 
     for (const auto token : tokens) {
-        const auto comma_separated_values = SvgInterpreterUtility::split_by_delimiter(token, ',');
-        for (const auto number_text : comma_separated_values) {
-            const auto parsed_number = SvgInterpreterUtility::parse_double(number_text);
-            if (!parsed_number.has_value()) {
-                return std::nullopt;
-            }
-
-            parsed_values.push_back(*parsed_number);
+        if (!append_comma_separated_numbers(token, parsed_values)) {
+            return std::nullopt;
         }
     }
 

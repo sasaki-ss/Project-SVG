@@ -38,6 +38,15 @@ private:
         Point end_point;
     };
 
+    struct ArcCommandParameters {
+        double radius_x;
+        double radius_y;
+        double rotation;
+        bool is_large_arc;
+        bool is_sweep;
+        Point end_point;
+    };
+
     struct ArcCenterParameters {
         Point center;
         double radius_x;
@@ -79,6 +88,14 @@ private:
     auto interpret_arc_to(
         const parser::PathCommand& command)
         -> std::optional<std::vector<PathInstruction>>;
+    auto parse_arc_parameters(
+        const parser::PathCommand& command,
+        std::size_t index)
+        -> std::optional<ArcCommandParameters>;
+    bool append_arc_instructions(
+        const parser::PathCommand& command,
+        std::size_t index,
+        std::vector<PathInstruction>& instructions);
 
     auto parse_point(
         const parser::PathCommand& command,
@@ -111,6 +128,10 @@ private:
         bool is_large_arc,
         bool is_sweep)
         -> std::optional<ArcCenterParameters>;
+    static bool append_arc_segments(
+        const ArcCenterParameters& arc,
+        const Point& end_point,
+        std::vector<PathInstruction>& instructions);
     static auto make_arc_segment(
         const ArcCenterParameters& arc,
         double start_angle,
