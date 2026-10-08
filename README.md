@@ -30,3 +30,9 @@ ctest --output-on-failure
 cmake -DBUILD_TESTING=OFF ..
 cmake --build .
 ```
+
+## lucide アイコンの取得
+lucide リポジトリの `icons/` のみを `assets/lucide/icons/` に取得する（バージョンは固定しない。管理対象外）。
+```sh
+python tools/lucide/fetch_icons.py
+```
