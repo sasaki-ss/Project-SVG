@@ -51,16 +51,7 @@ auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<Pat
         }
 
         if(current_command.has_value()) {
-            if(current_command->type == PathCommandType::ArcTo) {
-                const auto normalized_parameters = normalize_arc_parameters(
-                    current_command->parameters);
-                if(!normalized_parameters.has_value()) {
-                    return std::nullopt;
-                }
-                current_command->parameters = *normalized_parameters;
-            }
-
-            if(!validate_command(*current_command)){
+            if(!finalize_command(*current_command)) {
                 return std::nullopt;
             }
 
@@ -74,22 +65,25 @@ auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<Pat
     }
 
     if(current_command.has_value()) {
-        if(current_command->type == PathCommandType::ArcTo) {
-            const auto normalized_parameters = normalize_arc_parameters(
-                current_command->parameters);
-            if(!normalized_parameters.has_value()) {
-                return std::nullopt;
-            }
-            current_command->parameters = *normalized_parameters;
-        }
-
-        if(!validate_command(*current_command)){
+        if(!finalize_command(*current_command)) {
             return std::nullopt;
         }
         path_commands.emplace_back(std::move(*current_command));
     }
 
     return path_commands;
+}
+
+bool SvgPathParser::finalize_command(PathCommand& command) {
+    if(command.type == PathCommandType::ArcTo) {
+        const auto normalized_parameters = normalize_arc_parameters(command.parameters);
+        if(!normalized_parameters.has_value()) {
+            return false;
+        }
+        command.parameters = *normalized_parameters;
+    }
+
+    return validate_command(command);
 }
 
 bool SvgPathParser::is_command(char c) {
