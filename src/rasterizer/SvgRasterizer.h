@@ -46,6 +46,19 @@ private:
         int max_y;
     };
 
+    struct ShapeGeometry {
+        std::vector<Segment> stroke_segments;
+        std::vector<std::vector<Segment>> fill_edges;
+        double stroke_radius;
+        double stroke_reach;
+    };
+
+    struct RowCandidates {
+        std::vector<Segment> stroke_segments;
+        std::vector<std::vector<Segment>> fill_edges;
+        bool has_fill_edges;
+    };
+
     struct Transform {
         double scale;
         double offset_x;
@@ -160,6 +173,29 @@ private:
         const draw::DrawShape& draw_shape,
         const std::vector<Subpath>& subpaths,
         double stroke_width);
+    static void collect_row_candidates(
+        const ShapeGeometry& geometry,
+        double row_start,
+        RowCandidates& row_candidates);
+    static void collect_segments_near_band(
+        const std::vector<Segment>& segments,
+        bool is_horizontal_band,
+        double band_start,
+        double reach,
+        std::vector<Segment>& near_segments);
+    static void rasterize_pixel(
+        SampleCoverage& coverage,
+        const ShapeGeometry& geometry,
+        const RowCandidates& row_candidates,
+        const RasterPoint& pixel_origin,
+        std::vector<Segment>& pixel_stroke_segments);
+    static void cover_samples(
+        SampleCoverage& coverage,
+        const ShapeGeometry& geometry,
+        const RowCandidates& row_candidates,
+        const RasterPoint& pixel_origin,
+        const std::vector<Segment>& pixel_stroke_segments);
+    static RasterPoint make_sample_point(const RasterPoint& pixel_origin, int sample_index);
     static int count_covered_samples(SampleCoverage coverage);
     static void apply_group_opacity(
         RgbaImage& image,
