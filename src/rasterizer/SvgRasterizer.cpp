@@ -25,6 +25,7 @@ auto SvgRasterizer::rasterize(
         return std::nullopt;
     }
 
+    const RgbaColor opaque_color{color.red, color.green, color.blue, 255U};
     std::vector<PremultipliedColor> raster_samples = *samples;
     for (const draw::DrawShape& draw_shape : draw_shapes) {
         if (!std::isfinite(draw_shape.stroke_width) || draw_shape.stroke_width < 0.0) {
@@ -43,10 +44,19 @@ auto SvgRasterizer::rasterize(
             draw_shape,
             *subpaths,
             draw_shape.stroke_width * transform->scale,
-            color);
+            opaque_color);
     }
 
-    return make_output_image(output_width, output_height, raster_samples);
+    auto output_image = make_output_image(
+        output_width,
+        output_height,
+        raster_samples);
+    if (!output_image.has_value()) {
+        return std::nullopt;
+    }
+
+    apply_group_opacity(*output_image, color.alpha);
+    return output_image;
 }
 
 auto SvgRasterizer::make_transform(
@@ -511,6 +521,18 @@ void SvgRasterizer::rasterize_draw_shape(
                 }
             }
         }
+    }
+}
+
+void SvgRasterizer::apply_group_opacity(
+    RgbaImage& image,
+    std::uint8_t group_opacity) {
+    const double opacity = static_cast<double>(group_opacity) / 255.0;
+    for (std::size_t byte_index = 3U;
+         byte_index < image.pixels.size();
+         byte_index += 4U) {
+        const double alpha = static_cast<double>(image.pixels[byte_index]);
+        image.pixels[byte_index] = to_byte(alpha * opacity);
     }
 }
 

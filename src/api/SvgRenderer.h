@@ -15,6 +15,7 @@ using RgbaImage = rasterizer::RgbaImage;
 
 class SvgRenderer {
 public:
+    // current_color.alpha controls the opacity of the entire rendered icon.
     static auto render_from_file(
         const std::filesystem::path& svg_file_path,
         int output_width,

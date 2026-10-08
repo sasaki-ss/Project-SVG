@@ -355,6 +355,28 @@ TEST_F(SvgRasterizerTest, StrokeJoinDoesNotAccumulateAlpha) {
     EXPECT_EQ(get_alpha(*result, 12, 8), 128U);
 }
 
+TEST_F(SvgRasterizerTest, ShapeOverlapDoesNotExceedGroupOpacity) {
+    constexpr std::uint8_t GROUP_OPACITY = 128U;
+    const DrawShape first_shape = make_shape(
+        make_closed_rectangle(2.0, 2.0, 8.0, 8.0),
+        true,
+        false);
+    const DrawShape second_shape = make_shape(
+        make_closed_rectangle(6.0, 2.0, 8.0, 8.0),
+        true,
+        false);
+
+    const auto result = SvgRasterizer::rasterize(
+        {first_shape, second_shape},
+        make_view_box(16.0, 16.0),
+        16,
+        16,
+        RgbaColor{10U, 20U, 30U, GROUP_OPACITY});
+
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(get_alpha(*result, 6, 6), GROUP_OPACITY);
+}
+
 TEST_F(SvgRasterizerTest, NonzeroFillUsesWindingDirection) {
     std::vector<PathInstruction> same_direction = make_closed_rectangle(2.0, 2.0, 12.0, 12.0);
     const std::vector<PathInstruction> inner_same_direction =
@@ -394,7 +416,8 @@ TEST_F(SvgRasterizerTest, NonzeroFillUsesWindingDirection) {
     EXPECT_EQ(get_alpha(*opposite_direction_result, 7, 7), 0U);
 }
 
-TEST_F(SvgRasterizerTest, StrokeIsCompositedAfterFill) {
+TEST_F(SvgRasterizerTest, FillAndStrokeOverlapDoesNotExceedGroupOpacity) {
+    constexpr std::uint8_t GROUP_OPACITY = 128U;
     const DrawShape draw_shape = make_shape(
         make_closed_rectangle(4.0, 4.0, 8.0, 8.0),
         true,
@@ -406,10 +429,47 @@ TEST_F(SvgRasterizerTest, StrokeIsCompositedAfterFill) {
         make_view_box(16.0, 16.0),
         16,
         16,
-        RgbaColor{10U, 20U, 30U, 128U});
+        RgbaColor{10U, 20U, 30U, GROUP_OPACITY});
 
     ASSERT_TRUE(result.has_value());
-    EXPECT_EQ(get_alpha(*result, 4, 6), 192U);
+    EXPECT_EQ(get_alpha(*result, 4, 6), GROUP_OPACITY);
+}
+
+TEST_F(SvgRasterizerTest, PartialCoverageScalesAlphaByGroupOpacity) {
+    constexpr std::uint8_t GROUP_OPACITY = 128U;
+    constexpr int ALPHA_TOLERANCE = 1;
+    const DrawShape draw_shape = make_shape(
+        {make_move_to(1.0, 5.25), make_line_to(19.0, 5.25)},
+        false,
+        true,
+        2.0);
+
+    const auto opaque_result = SvgRasterizer::rasterize(
+        {draw_shape},
+        make_view_box(20.0, 10.0),
+        20,
+        10,
+        RgbaColor{10U, 20U, 30U, 255U});
+    const auto transparent_result = SvgRasterizer::rasterize(
+        {draw_shape},
+        make_view_box(20.0, 10.0),
+        20,
+        10,
+        RgbaColor{10U, 20U, 30U, GROUP_OPACITY});
+
+    ASSERT_TRUE(opaque_result.has_value());
+    ASSERT_TRUE(transparent_result.has_value());
+    const std::uint8_t opaque_alpha = get_alpha(*opaque_result, 10, 4);
+    const std::uint8_t expected_alpha = static_cast<std::uint8_t>(std::round(
+        static_cast<double>(opaque_alpha) *
+        static_cast<double>(GROUP_OPACITY) /
+        255.0));
+    ASSERT_GT(opaque_alpha, 0U);
+    ASSERT_LT(opaque_alpha, 255U);
+    EXPECT_NEAR(
+        get_alpha(*transparent_result, 10, 4),
+        expected_alpha,
+        ALPHA_TOLERANCE);
 }
 
 TEST_F(SvgRasterizerTest, FilledSquareCoverageMatchesArea) {
