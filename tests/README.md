@@ -2,10 +2,8 @@
 
 ## 目的
 
-このディレクトリは Project SVG のテストコードを配置するためのものです。  
-対象ごとにディレクトリを切り、今後テストを追加していく前提とします。
-
-現在は `parser` 配下に `XmlNodeExtractor` のテストを配置しています。
+このディレクトリは Project SVG の単体テスト (GoogleTest) を配置するためのものです。
+`src/` のディレクトリ (層) ごとにテストのディレクトリを切ります。
 
 ---
 
@@ -13,9 +11,11 @@
 
 ```text
 tests/
- ├─ CMakeLists.txt
- └─ parser/
-     └─ XmlNodeExtractorTest.cpp
+ ├─ parser/        # XmlNodeExtractor / SvgPathParser
+ ├─ interpreter/   # SvgElementInterpreter / SvgShapeInterpreter / SvgPathInterpreter
+ ├─ draw/          # SvgDrawModelBuilder
+ ├─ rasterizer/    # SvgRasterizer
+ └─ api/           # SvgRenderer (公開 API)。fixtures/ にテスト用 SVG
 ```
 
 ---
@@ -39,13 +39,12 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-個別テストを実行したい場合は、生成されたテスト実行ファイルを直接実行してください。
+個別テストを実行したい場合は、生成されたテスト実行ファイル (`project_svg_<層>_tests`) を直接実行してください。
 
 ---
 
 ## テスト追加ルール
 
-- テストコードは `tests` 配下に配置する
-- 対象ごとにディレクトリを切る
-- 新しいテストを追加した場合は `tests/CMakeLists.txt` に対象を追加する
-- 本体実装の仕様変更とテスト追加は分けて扱う
+- テストコードは `tests/<層>/` 配下に配置する。既存の層のディレクトリに置いた `*.cpp` は、ルートの `CMakeLists.txt` が GLOB で拾う
+- 新しい層のディレクトリを作る場合は、ルートの `CMakeLists.txt` にテストターゲットを追加する (既存の `project_svg_<層>_tests` の定義が前例)
+- テストのルールは `docs/test_coding_guidelines.md` に従う

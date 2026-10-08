@@ -104,22 +104,17 @@ if (BUILD_TESTING)
     if (PROJECT_SVG_INTERPRETER_TEST_SOURCES)
         add_executable(project_svg_interpreter_tests
             ${PROJECT_SVG_INTERPRETER_TEST_SOURCES}
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter/SvgElementInterpreter.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter/SvgPathInterpreter.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter/SvgShapeInterpreter.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter/SvgInterpreterUtility.cpp
         )
 
         target_link_libraries(project_svg_interpreter_tests
             PRIVATE
+                project_svg
                 gtest_main
         )
 
         target_include_directories(project_svg_interpreter_tests
             PRIVATE
                 ${CMAKE_CURRENT_SOURCE_DIR}/src
-                ${CMAKE_CURRENT_SOURCE_DIR}/src/interpreter
-                ${CMAKE_CURRENT_SOURCE_DIR}/src/parser
         )
 
         if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
