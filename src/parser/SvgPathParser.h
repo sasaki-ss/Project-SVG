@@ -21,6 +21,8 @@ private:
     auto tokenize_path(const std::string& d) -> std::optional<std::vector<std::string>>;
     auto parse_command_type(const std::string& token) -> std::optional<PathCommandType>;
     auto read_parameter(const std::string& d, int& index) -> std::optional<std::string>;
+    auto normalize_arc_parameters(const std::vector<std::string>& parameters)
+        -> std::optional<std::vector<std::string>>;
     bool validate_command(const PathCommand& command);
 };
 

@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "PathInstruction.h"
@@ -23,8 +24,28 @@ private:
     struct InterpretContext {
         Point current_point{0.0, 0.0};
         Point subpath_start_point{0.0, 0.0};
+        Point previous_cubic_control_point{0.0, 0.0};
+        Point previous_quadratic_control_point{0.0, 0.0};
         bool has_current_point{false};
         bool has_subpath_start_point{false};
+        bool has_previous_cubic_control_point{false};
+        bool has_previous_quadratic_control_point{false};
+    };
+
+    struct CubicBezierPoints {
+        Point control_point1;
+        Point control_point2;
+        Point end_point;
+    };
+
+    struct ArcCenterParameters {
+        Point center;
+        double radius_x;
+        double radius_y;
+        double cos_rotation;
+        double sin_rotation;
+        double start_angle;
+        double angle_delta;
     };
 
     auto interpret_move_to(
@@ -66,6 +87,39 @@ private:
     auto make_absolute_point(
         const Point& point,
         bool is_absolute)
+        -> Point;
+    void reset_previous_control_points(parser::PathCommandType command_type);
+
+    static bool is_cubic_command(parser::PathCommandType command_type);
+    static bool is_quadratic_command(parser::PathCommandType command_type);
+    static auto make_reflected_point(
+        const Point& origin,
+        const Point& control_point)
+        -> Point;
+    static auto make_quadratic_cubic_points(
+        const Point& start_point,
+        const Point& quadratic_control_point,
+        const Point& end_point)
+        -> CubicBezierPoints;
+    static auto parse_arc_flag(const std::string& parameter) -> std::optional<bool>;
+    static auto make_arc_center_parameters(
+        const Point& start_point,
+        const Point& end_point,
+        double radius_x,
+        double radius_y,
+        double rotation,
+        bool is_large_arc,
+        bool is_sweep)
+        -> std::optional<ArcCenterParameters>;
+    static auto make_arc_segment(
+        const ArcCenterParameters& arc,
+        double start_angle,
+        double angle_delta)
+        -> CubicBezierPoints;
+    static auto transform_arc_point(
+        const ArcCenterParameters& arc,
+        double x,
+        double y)
         -> Point;
 
     InterpretContext context;
