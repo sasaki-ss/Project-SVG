@@ -6,9 +6,9 @@
 #include <optional>
 #include <vector>
 
-#include "RgbaImage.h"
 #include "draw/DrawShape.h"
 #include "interpreter/InterpretedSvg.h"
+#include "RgbaImage.h"
 
 namespace svg{
 namespace rasterizer{

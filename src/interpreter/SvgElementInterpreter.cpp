@@ -2,9 +2,9 @@
 
 #include <array>
 
+#include "parser/ExtractedNode.h"
 #include "SvgInterpreterUtility.h"
 #include "SvgShapeInterpreter.h"
-#include "parser/ExtractedNode.h"
 
 namespace svg{
 namespace interpreter{

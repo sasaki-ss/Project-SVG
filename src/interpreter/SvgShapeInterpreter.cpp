@@ -1,7 +1,7 @@
 #include "SvgShapeInterpreter.h"
 
-#include "SvgInterpreterUtility.h"
 #include "parser/ExtractedNode.h"
+#include "SvgInterpreterUtility.h"
 
 namespace svg{
 namespace interpreter{

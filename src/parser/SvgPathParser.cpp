@@ -34,23 +34,23 @@ auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<Pat
     std::vector<PathCommand> path_commands;
 
     auto tokens = tokenize_path(d);
-    if(!tokens.has_value() || tokens->empty()) {
+    if (!tokens.has_value() || tokens->empty()) {
         return std::nullopt;
     }
 
     std::optional<PathCommand> current_command;
-    for(const auto& token : *tokens) {
+    for (const auto& token : *tokens) {
         std::optional<PathCommandType> command_type = parse_command_type(token);
-        if(!command_type.has_value() && !current_command.has_value()) {
+        if (!command_type.has_value() && !current_command.has_value()) {
             return std::nullopt;
         }
 
-        if(!command_type.has_value()) {
+        if (!command_type.has_value()) {
             current_command->parameters.emplace_back(token);
             continue;
         }
 
-        if(!push_finalized_command(current_command, path_commands)) {
+        if (!push_finalized_command(current_command, path_commands)) {
             return std::nullopt;
         }
 
@@ -60,7 +60,7 @@ auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<Pat
         current_command = std::move(command);
     }
 
-    if(!push_finalized_command(current_command, path_commands)) {
+    if (!push_finalized_command(current_command, path_commands)) {
         return std::nullopt;
     }
 
@@ -70,11 +70,11 @@ auto SvgPathParser::parse(const std::string& d) -> std::optional<std::vector<Pat
 bool SvgPathParser::push_finalized_command(
     std::optional<PathCommand>& command,
     std::vector<PathCommand>& path_commands) {
-    if(!command.has_value()) {
+    if (!command.has_value()) {
         return true;
     }
 
-    if(!finalize_command(*command)) {
+    if (!finalize_command(*command)) {
         return false;
     }
 
@@ -84,9 +84,9 @@ bool SvgPathParser::push_finalized_command(
 }
 
 bool SvgPathParser::finalize_command(PathCommand& command) {
-    if(command.type == PathCommandType::ArcTo) {
+    if (command.type == PathCommandType::ArcTo) {
         const auto normalized_parameters = normalize_arc_parameters(command.parameters);
-        if(!normalized_parameters.has_value()) {
+        if (!normalized_parameters.has_value()) {
             return false;
         }
         command.parameters = *normalized_parameters;
@@ -112,25 +112,25 @@ auto SvgPathParser::tokenize_path(const std::string& d) -> std::optional<std::ve
     std::vector<std::string> token;
     int i = 0;
     int length = static_cast<int>(d.length());
-    while(i < length) {
+    while (i < length) {
         char c = d.at(i);
-        if(is_separator(c)) {
+        if (is_separator(c)) {
             ++i;
             continue;
         }
 
-        if(is_command(c)) {
+        if (is_command(c)) {
             token.emplace_back(1, c);
             ++i;
             continue;
         }
 
-        if(!is_parameter(c)) {
+        if (!is_parameter(c)) {
             return std::nullopt;
         }
 
         auto parameter = read_parameter(d, i);
-        if(!parameter.has_value()) {
+        if (!parameter.has_value()) {
             return std::nullopt;
         }
 
@@ -141,13 +141,13 @@ auto SvgPathParser::tokenize_path(const std::string& d) -> std::optional<std::ve
 }
 
 auto SvgPathParser::parse_command_type(const std::string& token) -> std::optional<PathCommandType> {
-    if(token.length() != 1) {
+    if (token.length() != 1) {
         return std::nullopt;
     }
 
     char command = static_cast<char>(std::toupper(static_cast<unsigned char>(token.at(0))));
     auto it = PATH_COMMAND_TYPE.find(command);
-    if(it != PATH_COMMAND_TYPE.end()) {
+    if (it != PATH_COMMAND_TYPE.end()) {
         return it->second;
     }
     
@@ -159,7 +159,7 @@ auto SvgPathParser::read_parameter(const std::string& d, int& index) -> std::opt
     int start_pos = index;
 
     int size = static_cast<int>(d.size());
-    if(start_pos >= size) {
+    if (start_pos >= size) {
         return std::nullopt;
     }
 
@@ -167,21 +167,21 @@ auto SvgPathParser::read_parameter(const std::string& d, int& index) -> std::opt
     bool has_dot = start_char == '.' ? true : false;
     parameter.push_back(start_char);
     
-    for(int i = start_pos + 1; i < size; ++i) {
+    for (int i = start_pos + 1; i < size; ++i) {
         char c = d.at(i);
 
-        if(is_separator(c) || is_command(c) || c == '-') {
+        if (is_separator(c) || is_command(c) || c == '-') {
             index = i;
             return parameter;
         }
 
-        if(c == '.' && !has_dot) {
+        if (c == '.' && !has_dot) {
             parameter.push_back(c);
             has_dot = true;
             continue;
         }
 
-        if(c == '.') {
+        if (c == '.') {
             index = i;
             return parameter;
         }
@@ -248,7 +248,7 @@ auto SvgPathParser::normalize_arc_parameters(
 
 bool SvgPathParser::validate_command(const PathCommand& command){
     int parameter_size = static_cast<int>(command.parameters.size());
-    switch(command.type){
+    switch (command.type){
     case PathCommandType::MoveTo:
         return parameter_size >= PARAMETER_SIZE_M && parameter_size % PARAMETER_SIZE_M == 0;
     case PathCommandType::LineTo:

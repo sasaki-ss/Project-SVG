@@ -11,6 +11,8 @@ namespace interpreter{
 using parser::PathCommand;
 using parser::PathCommandType;
 
+static constexpr double PI = 3.14159265358979323846;
+
 auto SvgPathInterpreter::interpret(
     const std::vector<PathCommand>& commands)
     -> std::optional<std::vector<PathInstruction>> {
@@ -695,25 +697,75 @@ auto SvgPathInterpreter::make_arc_center_parameters(
     bool is_large_arc,
     bool is_sweep)
     -> std::optional<ArcCenterParameters> {
-    constexpr double PI = 3.14159265358979323846;
     constexpr double DEGREES_TO_RADIANS = PI / 180.0;
 
     const double rotation_radians = rotation * DEGREES_TO_RADIANS;
     const double cos_rotation = std::cos(rotation_radians);
     const double sin_rotation = std::sin(rotation_radians);
+    const Point transformed_start = make_arc_transformed_start(
+        start_point,
+        end_point,
+        cos_rotation,
+        sin_rotation);
+    scale_up_arc_radii(transformed_start, radius_x, radius_y);
+
+    const auto transformed_center = make_arc_transformed_center(
+        transformed_start,
+        radius_x,
+        radius_y,
+        is_large_arc,
+        is_sweep);
+    if (!transformed_center.has_value()) {
+        return std::nullopt;
+    }
+
+    ArcCenterParameters arc;
+    arc.center = Point{
+        cos_rotation * transformed_center->x
+            - sin_rotation * transformed_center->y
+            + (start_point.x + end_point.x) / 2.0,
+        sin_rotation * transformed_center->x
+            + cos_rotation * transformed_center->y
+            + (start_point.y + end_point.y) / 2.0,
+    };
+    arc.radius_x = radius_x;
+    arc.radius_y = radius_y;
+    arc.cos_rotation = cos_rotation;
+    arc.sin_rotation = sin_rotation;
+    set_arc_angles(
+        transformed_start,
+        *transformed_center,
+        radius_x,
+        radius_y,
+        is_sweep,
+        arc);
+    return arc;
+}
+
+auto SvgPathInterpreter::make_arc_transformed_start(
+    const Point& start_point,
+    const Point& end_point,
+    double cos_rotation,
+    double sin_rotation)
+    -> Point {
     const double half_delta_x = (start_point.x - end_point.x) / 2.0;
     const double half_delta_y = (start_point.y - end_point.y) / 2.0;
-    const double transformed_start_x = cos_rotation * half_delta_x
-        + sin_rotation * half_delta_y;
-    const double transformed_start_y = -sin_rotation * half_delta_x
-        + cos_rotation * half_delta_y;
+    return Point{
+        cos_rotation * half_delta_x + sin_rotation * half_delta_y,
+        -sin_rotation * half_delta_x + cos_rotation * half_delta_y,
+    };
+}
 
+void SvgPathInterpreter::scale_up_arc_radii(
+    const Point& transformed_start,
+    double& radius_x,
+    double& radius_y) {
     const double radius_x_squared = radius_x * radius_x;
     const double radius_y_squared = radius_y * radius_y;
-    const double transformed_start_x_squared = transformed_start_x
-        * transformed_start_x;
-    const double transformed_start_y_squared = transformed_start_y
-        * transformed_start_y;
+    const double transformed_start_x_squared = transformed_start.x
+        * transformed_start.x;
+    const double transformed_start_y_squared = transformed_start.y
+        * transformed_start.y;
     const double radius_scale = transformed_start_x_squared / radius_x_squared
         + transformed_start_y_squared / radius_y_squared;
     if (radius_scale > 1.0) {
@@ -721,15 +773,27 @@ auto SvgPathInterpreter::make_arc_center_parameters(
         radius_x *= scale;
         radius_y *= scale;
     }
+}
 
-    const double adjusted_radius_x_squared = radius_x * radius_x;
-    const double adjusted_radius_y_squared = radius_y * radius_y;
-    const double numerator = adjusted_radius_x_squared * adjusted_radius_y_squared
-        - adjusted_radius_x_squared * transformed_start_y_squared
-        - adjusted_radius_y_squared * transformed_start_x_squared;
-    const double denominator = adjusted_radius_x_squared
+auto SvgPathInterpreter::make_arc_transformed_center(
+    const Point& transformed_start,
+    double radius_x,
+    double radius_y,
+    bool is_large_arc,
+    bool is_sweep)
+    -> std::optional<Point> {
+    const double radius_x_squared = radius_x * radius_x;
+    const double radius_y_squared = radius_y * radius_y;
+    const double transformed_start_x_squared = transformed_start.x
+        * transformed_start.x;
+    const double transformed_start_y_squared = transformed_start.y
+        * transformed_start.y;
+    const double numerator = radius_x_squared * radius_y_squared
+        - radius_x_squared * transformed_start_y_squared
+        - radius_y_squared * transformed_start_x_squared;
+    const double denominator = radius_x_squared
         * transformed_start_y_squared
-        + adjusted_radius_y_squared * transformed_start_x_squared;
+        + radius_y_squared * transformed_start_x_squared;
     if (denominator == 0.0) {
         return std::nullopt;
     }
@@ -739,28 +803,27 @@ auto SvgPathInterpreter::make_arc_center_parameters(
         center_factor = -center_factor;
     }
 
-    const double transformed_center_x = center_factor
-        * (radius_x * transformed_start_y / radius_y);
-    const double transformed_center_y = center_factor
-        * (-radius_y * transformed_start_x / radius_x);
-    const Point center{
-        cos_rotation * transformed_center_x
-            - sin_rotation * transformed_center_y
-            + (start_point.x + end_point.x) / 2.0,
-        sin_rotation * transformed_center_x
-            + cos_rotation * transformed_center_y
-            + (start_point.y + end_point.y) / 2.0,
+    return Point{
+        center_factor * (radius_x * transformed_start.y / radius_y),
+        center_factor * (-radius_y * transformed_start.x / radius_x),
     };
+}
 
-    const double start_vector_x = (transformed_start_x - transformed_center_x)
+void SvgPathInterpreter::set_arc_angles(
+    const Point& transformed_start,
+    const Point& transformed_center,
+    double radius_x,
+    double radius_y,
+    bool is_sweep,
+    ArcCenterParameters& arc) {
+    const double start_vector_x = (transformed_start.x - transformed_center.x)
         / radius_x;
-    const double start_vector_y = (transformed_start_y - transformed_center_y)
+    const double start_vector_y = (transformed_start.y - transformed_center.y)
         / radius_y;
-    const double end_vector_x = (-transformed_start_x - transformed_center_x)
+    const double end_vector_x = (-transformed_start.x - transformed_center.x)
         / radius_x;
-    const double end_vector_y = (-transformed_start_y - transformed_center_y)
+    const double end_vector_y = (-transformed_start.y - transformed_center.y)
         / radius_y;
-    const double start_angle = std::atan2(start_vector_y, start_vector_x);
     double angle_delta = std::atan2(
         start_vector_x * end_vector_y - start_vector_y * end_vector_x,
         start_vector_x * end_vector_x + start_vector_y * end_vector_y);
@@ -771,15 +834,8 @@ auto SvgPathInterpreter::make_arc_center_parameters(
         angle_delta += 2.0 * PI;
     }
 
-    ArcCenterParameters arc;
-    arc.center = center;
-    arc.radius_x = radius_x;
-    arc.radius_y = radius_y;
-    arc.cos_rotation = cos_rotation;
-    arc.sin_rotation = sin_rotation;
-    arc.start_angle = start_angle;
+    arc.start_angle = std::atan2(start_vector_y, start_vector_x);
     arc.angle_delta = angle_delta;
-    return arc;
 }
 
 auto SvgPathInterpreter::make_arc_segment(
