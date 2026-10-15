@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+#include <variant>
 
 #include "interpreter/SvgPathInterpreter.h"
 #include "parser/SvgPathParser.h"
@@ -91,7 +92,7 @@ auto SvgDrawModelBuilder::resolve_style(
     style.stroke_width = root_style.stroke_width;
     style.stroke_linecap = root_style.stroke_linecap;
     style.stroke_linejoin = root_style.stroke_linejoin;
-    if (shape.type == interpreter::SvgElementType::Line) {
+    if (std::holds_alternative<interpreter::LineElement>(shape.data)) {
         style.has_fill = false;
     }
     return style;
@@ -99,34 +100,12 @@ auto SvgDrawModelBuilder::resolve_style(
 
 auto SvgDrawModelBuilder::make_path_instructions(const interpreter::SvgShape& shape)
     -> std::optional<std::vector<interpreter::PathInstruction>> {
-    switch (shape.type) {
-        case interpreter::SvgElementType::Path:
-            return make_path_element_instructions(
-                std::get<interpreter::PathElement>(shape.data));
-        case interpreter::SvgElementType::Circle:
-            return make_circle_instructions(
-                std::get<interpreter::CircleElement>(shape.data));
-        case interpreter::SvgElementType::Rect:
-            return make_rect_instructions(
-                std::get<interpreter::RectElement>(shape.data));
-        case interpreter::SvgElementType::Line:
-            return make_line_instructions(
-                std::get<interpreter::LineElement>(shape.data));
-        case interpreter::SvgElementType::Ellipse:
-            return make_ellipse_instructions(
-                std::get<interpreter::EllipseElement>(shape.data));
-        case interpreter::SvgElementType::Polyline:
-            return make_polyline_instructions(
-                std::get<interpreter::PolylineElement>(shape.data));
-        case interpreter::SvgElementType::Polygon:
-            return make_polygon_instructions(
-                std::get<interpreter::PolygonElement>(shape.data));
-        default:
-            return std::nullopt;
-    }
+    return std::visit(
+        [](const auto& element) { return make_element_instructions(element); },
+        shape.data);
 }
 
-auto SvgDrawModelBuilder::make_path_element_instructions(
+auto SvgDrawModelBuilder::make_element_instructions(
     const interpreter::PathElement& element)
     -> std::optional<std::vector<interpreter::PathInstruction>> {
     parser::SvgPathParser parser;
@@ -139,7 +118,7 @@ auto SvgDrawModelBuilder::make_path_element_instructions(
     return interpreter.interpret(*commands);
 }
 
-auto SvgDrawModelBuilder::make_circle_instructions(
+auto SvgDrawModelBuilder::make_element_instructions(
     const interpreter::CircleElement& element)
     -> std::optional<std::vector<interpreter::PathInstruction>> {
     if (element.r < 0.0) {
@@ -155,7 +134,7 @@ auto SvgDrawModelBuilder::make_circle_instructions(
         element.r);
 }
 
-auto SvgDrawModelBuilder::make_rect_instructions(
+auto SvgDrawModelBuilder::make_element_instructions(
     const interpreter::RectElement& element)
     -> std::optional<std::vector<interpreter::PathInstruction>> {
     if (element.width < 0.0 || element.height < 0.0) {
@@ -192,7 +171,7 @@ auto SvgDrawModelBuilder::make_rect_instructions(
         radius_y);
 }
 
-auto SvgDrawModelBuilder::make_line_instructions(
+auto SvgDrawModelBuilder::make_element_instructions(
     const interpreter::LineElement& element)
     -> std::optional<std::vector<interpreter::PathInstruction>> {
     return std::vector<interpreter::PathInstruction>{
@@ -201,7 +180,7 @@ auto SvgDrawModelBuilder::make_line_instructions(
     };
 }
 
-auto SvgDrawModelBuilder::make_ellipse_instructions(
+auto SvgDrawModelBuilder::make_element_instructions(
     const interpreter::EllipseElement& element)
     -> std::optional<std::vector<interpreter::PathInstruction>> {
     if (element.rx < 0.0 || element.ry < 0.0) {
@@ -217,13 +196,13 @@ auto SvgDrawModelBuilder::make_ellipse_instructions(
         element.ry);
 }
 
-auto SvgDrawModelBuilder::make_polyline_instructions(
+auto SvgDrawModelBuilder::make_element_instructions(
     const interpreter::PolylineElement& element)
     -> std::optional<std::vector<interpreter::PathInstruction>> {
     return make_open_polyline_path(element.points);
 }
 
-auto SvgDrawModelBuilder::make_polygon_instructions(
+auto SvgDrawModelBuilder::make_element_instructions(
     const interpreter::PolygonElement& element)
     -> std::optional<std::vector<interpreter::PathInstruction>> {
     std::vector<interpreter::PathInstruction> instructions = make_open_polyline_path(

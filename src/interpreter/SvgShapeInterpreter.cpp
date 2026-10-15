@@ -61,7 +61,6 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret_path(const ExtractedNode&
     }
 
     SvgShape shape;
-    shape.type = SvgElementType::Path;
     shape.data = PathElement{*d};
     return shape;
 }
@@ -81,7 +80,6 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret_circle(const ExtractedNod
     }
 
     SvgShape shape;
-    shape.type = SvgElementType::Circle;
     shape.data = CircleElement{*cx, *cy, *r};
     return shape;
 }
@@ -115,7 +113,6 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret_rect(const ExtractedNode&
     }
 
     SvgShape shape;
-    shape.type = SvgElementType::Rect;
     shape.data = RectElement{*x, *y, *width, *height, *rx, *ry};
     return shape;
 }
@@ -139,7 +136,6 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret_line(const ExtractedNode&
     }
 
     SvgShape shape;
-    shape.type = SvgElementType::Line;
     shape.data = LineElement{*x1, *y1, *x2, *y2};
     return shape;
 }
@@ -163,7 +159,6 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret_ellipse(const ExtractedNo
     }
 
     SvgShape shape;
-    shape.type = SvgElementType::Ellipse;
     shape.data = EllipseElement{*cx, *cy, *rx, *ry};
     return shape;
 }
@@ -180,7 +175,6 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret_polyline(const ExtractedN
     }
 
     SvgShape shape;
-    shape.type = SvgElementType::Polyline;
     shape.data = PolylineElement{*points};
     return shape;
 }
@@ -197,7 +191,6 @@ std::optional<SvgShape> SvgShapeInterpreter::interpret_polygon(const ExtractedNo
     }
 
     SvgShape shape;
-    shape.type = SvgElementType::Polygon;
     shape.data = PolygonElement{*points};
     return shape;
 }
