@@ -8,6 +8,7 @@
 
 #include "draw/DrawShape.h"
 #include "interpreter/InterpretedSvg.h"
+
 #include "RgbaImage.h"
 
 namespace svg{
