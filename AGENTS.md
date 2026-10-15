@@ -55,7 +55,7 @@ lucide (https://github.com/lucide-icons/lucide) のアイコンを、DXライブ
 
 ### 条件付き
 #### C++コードを実装する場合
-- `docs/coding_guidelines.md`
+- Reakspace の `lang-cpp` (MCP `ai_tools` の `reak_read` が使えるならそれで読む。使えなければ `python D:/work/ai_tools/reak_read/<agent>.py lang-cpp`。`<agent>` は `claude` / `codex`)
 
 #### テストコードを実装する場合
 - `docs/test_coding_guidelines.md`
@@ -78,7 +78,8 @@ PR は使わない。開発ブランチは `develop` で、作業は `develop` �
 ## 実装ルール
 - C++17 準拠
 - ヘッダと実装を分離する（`.h` / `.cpp`）
-- インクルードガードは `#ifndef` 形式
+- インクルードガードは `#ifndef` 形式。名前は `PROJECT_SVG_<DIR>_<FILE>_H_` (例: `src/loader/SvgLoader.h` は `PROJECT_SVG_LOADER_SVG_LOADER_H_`)
+- namespace の第 1 階層は `svg`
 - 命名規則は既存コードに合わせる
 - 不要な依存を追加しない
 - 既存コードの流儀に合わせる

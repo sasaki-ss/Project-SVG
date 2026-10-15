@@ -3,6 +3,7 @@
 #include <array>
 
 #include "parser/ExtractedNode.h"
+
 #include "SvgInterpreterUtility.h"
 #include "SvgShapeInterpreter.h"
 

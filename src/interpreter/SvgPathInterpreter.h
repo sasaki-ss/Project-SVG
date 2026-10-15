@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "parser/PathCommand.h"
+
 #include "PathInstruction.h"
 
 namespace svg{
