@@ -148,6 +148,8 @@ private:
     static void set_arc_angles(
         const Point& transformed_start,
         const Point& transformed_center,
+        double radius_x,
+        double radius_y,
         bool is_sweep,
         ArcCenterParameters& arc);
     static bool append_arc_segments(

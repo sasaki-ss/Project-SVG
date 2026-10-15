@@ -732,7 +732,13 @@ auto SvgPathInterpreter::make_arc_center_parameters(
     arc.radius_y = radius_y;
     arc.cos_rotation = cos_rotation;
     arc.sin_rotation = sin_rotation;
-    set_arc_angles(transformed_start, *transformed_center, is_sweep, arc);
+    set_arc_angles(
+        transformed_start,
+        *transformed_center,
+        radius_x,
+        radius_y,
+        is_sweep,
+        arc);
     return arc;
 }
 
@@ -806,16 +812,18 @@ auto SvgPathInterpreter::make_arc_transformed_center(
 void SvgPathInterpreter::set_arc_angles(
     const Point& transformed_start,
     const Point& transformed_center,
+    double radius_x,
+    double radius_y,
     bool is_sweep,
     ArcCenterParameters& arc) {
     const double start_vector_x = (transformed_start.x - transformed_center.x)
-        / arc.radius_x;
+        / radius_x;
     const double start_vector_y = (transformed_start.y - transformed_center.y)
-        / arc.radius_y;
+        / radius_y;
     const double end_vector_x = (-transformed_start.x - transformed_center.x)
-        / arc.radius_x;
+        / radius_x;
     const double end_vector_y = (-transformed_start.y - transformed_center.y)
-        / arc.radius_y;
+        / radius_y;
     double angle_delta = std::atan2(
         start_vector_x * end_vector_y - start_vector_y * end_vector_x,
         start_vector_x * end_vector_x + start_vector_y * end_vector_y);
