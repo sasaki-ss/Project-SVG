@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <string_view>
+
+#include <gtest/gtest.h>
 
 #include "api/SvgRenderer.h"
 

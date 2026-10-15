@@ -1,5 +1,3 @@
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <cstddef>
 #include <cmath>
@@ -7,6 +5,8 @@
 #include <optional>
 #include <utility>
 #include <vector>
+
+#include <gtest/gtest.h>
 
 #include "draw/DrawShape.h"
 #include "interpreter/InterpretedSvg.h"

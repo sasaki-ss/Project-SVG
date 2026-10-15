@@ -1,29 +1,27 @@
-﻿#include <gtest/gtest.h>
-
-#include <initializer_list>
+﻿#include <initializer_list>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include <gtest/gtest.h>
+
 #include "parser/PathCommand.h"
 #include "parser/SvgPathParser.h"
-
-namespace {
 
 using svg::parser::PathCommand;
 using svg::parser::PathCommandType;
 using svg::parser::SvgPathParser;
 
-std::optional<std::vector<PathCommand>> parse_path(std::string_view d) {
+static std::optional<std::vector<PathCommand>> parse_path(std::string_view d) {
     SvgPathParser parser;
     return parser.parse(std::string(d));
 }
 
-void expect_command(const PathCommand& command,
-                    PathCommandType expected_type,
-                    bool expected_is_absolute,
-                    std::initializer_list<std::string_view> expected_parameters) {
+static void expect_command(const PathCommand& command,
+                           PathCommandType expected_type,
+                           bool expected_is_absolute,
+                           std::initializer_list<std::string_view> expected_parameters) {
     EXPECT_EQ(command.type, expected_type);
     EXPECT_EQ(command.is_absolute, expected_is_absolute);
     ASSERT_EQ(command.parameters.size(), expected_parameters.size());
@@ -379,5 +377,3 @@ TEST(SvgPathParserTest, InvalidArcFlagFailsToParse) {
 
     EXPECT_FALSE(result.has_value());
 }
-
-}  // namespace

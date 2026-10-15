@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
-
 #include <cmath>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <gtest/gtest.h>
 
 #include "draw/DrawShape.h"
 #include "draw/SvgDrawModelBuilder.h"
@@ -12,8 +12,6 @@
 #include "interpreter/PathInstruction.h"
 #include "interpreter/SvgElementInterpreter.h"
 #include "parser/ExtractedNode.h"
-
-namespace {
 
 using svg::draw::DrawShape;
 using svg::draw::SvgDrawModelBuilder;
@@ -27,7 +25,7 @@ using svg::interpreter::SvgElementInterpreter;
 using svg::parser::ExtractedAttribute;
 using svg::parser::ExtractedNode;
 
-ExtractedNode create_node(
+static ExtractedNode create_node(
     std::string element_name,
     std::vector<ExtractedAttribute> attributes,
     std::vector<ExtractedNode> children = {}) {
@@ -38,7 +36,7 @@ ExtractedNode create_node(
     return node;
 }
 
-ExtractedNode create_root(
+static ExtractedNode create_root(
     std::vector<ExtractedNode> children,
     std::string fill = "none",
     std::string stroke = "currentColor") {
@@ -57,7 +55,7 @@ ExtractedNode create_root(
         std::move(children));
 }
 
-auto build_draw_shapes(const ExtractedNode& root)
+static auto build_draw_shapes(const ExtractedNode& root)
     -> std::optional<std::vector<DrawShape>> {
     const std::optional<InterpretedSvg> interpreted = SvgElementInterpreter::interpret(root);
     if (!interpreted.has_value()) {
@@ -66,12 +64,12 @@ auto build_draw_shapes(const ExtractedNode& root)
     return SvgDrawModelBuilder::build(*interpreted);
 }
 
-void expect_point(const Point& point, double expected_x, double expected_y) {
+static void expect_point(const Point& point, double expected_x, double expected_y) {
     EXPECT_DOUBLE_EQ(point.x, expected_x);
     EXPECT_DOUBLE_EQ(point.y, expected_y);
 }
 
-void expect_instruction(
+static void expect_instruction(
     const PathInstruction& instruction,
     PathInstructionType expected_type,
     std::size_t expected_point_count) {
@@ -457,5 +455,3 @@ TEST(SvgDrawModelBuilderTest, DrawShapesKeepSvgDocumentOrder) {
     expect_point(result->at(0).path_instructions[0].points[0], 1.0, 1.0);
     expect_point(result->at(1).path_instructions[0].points[0], 12.0, 20.0);
 }
-
-}  // namespace

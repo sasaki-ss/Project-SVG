@@ -1,16 +1,14 @@
-#include <gtest/gtest.h>
-
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include <gtest/gtest.h>
+
 #include "interpreter/InterpretedSvg.h"
 #include "interpreter/SvgElementInterpreter.h"
 #include "interpreter/SvgShapeInterpreter.h"
 #include "parser/ExtractedNode.h"
-
-namespace {
 
 using svg::interpreter::CircleElement;
 using svg::interpreter::EllipseElement;
@@ -29,7 +27,7 @@ using svg::interpreter::SvgShapeInterpreter;
 using svg::parser::ExtractedAttribute;
 using svg::parser::ExtractedNode;
 
-ExtractedNode create_node(
+static ExtractedNode create_node(
     std::string element_name,
     std::vector<ExtractedAttribute> attributes,
     std::vector<ExtractedNode> children = {}) {
@@ -40,7 +38,7 @@ ExtractedNode create_node(
     return node;
 }
 
-void expect_point(const Point& point, double expected_x, double expected_y) {
+static void expect_point(const Point& point, double expected_x, double expected_y) {
     EXPECT_DOUBLE_EQ(point.x, expected_x);
     EXPECT_DOUBLE_EQ(point.y, expected_y);
 }
@@ -478,5 +476,3 @@ TEST(SvgInterpreterTest, test_abnormal_22) {
 
     EXPECT_FALSE(shape.has_value());
 }
-
-}  // namespace
