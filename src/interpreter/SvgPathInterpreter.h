@@ -128,6 +128,28 @@ private:
         bool is_large_arc,
         bool is_sweep)
         -> std::optional<ArcCenterParameters>;
+    static auto make_arc_transformed_start(
+        const Point& start_point,
+        const Point& end_point,
+        double cos_rotation,
+        double sin_rotation)
+        -> Point;
+    static void scale_up_arc_radii(
+        const Point& transformed_start,
+        double& radius_x,
+        double& radius_y);
+    static auto make_arc_transformed_center(
+        const Point& transformed_start,
+        double radius_x,
+        double radius_y,
+        bool is_large_arc,
+        bool is_sweep)
+        -> std::optional<Point>;
+    static void set_arc_angles(
+        const Point& transformed_start,
+        const Point& transformed_center,
+        bool is_sweep,
+        ArcCenterParameters& arc);
     static bool append_arc_segments(
         const ArcCenterParameters& arc,
         const Point& end_point,
