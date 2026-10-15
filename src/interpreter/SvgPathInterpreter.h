@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "PathInstruction.h"
 #include "parser/PathCommand.h"
+#include "PathInstruction.h"
 
 namespace svg{
 namespace interpreter{
