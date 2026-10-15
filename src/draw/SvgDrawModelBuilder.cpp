@@ -8,8 +8,8 @@
 #include "interpreter/SvgPathInterpreter.h"
 #include "parser/SvgPathParser.h"
 
-namespace svg{
-namespace draw{
+namespace svg {
+namespace draw {
 
 auto SvgDrawModelBuilder::build(const interpreter::InterpretedSvg& interpreted_svg)
     -> std::optional<std::vector<DrawShape>> {

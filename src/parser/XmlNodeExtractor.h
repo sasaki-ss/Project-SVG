@@ -9,8 +9,8 @@
 
 #include "ExtractedNode.h"
 
-namespace svg{
-namespace parser{
+namespace svg {
+namespace parser {
 
 class XmlNodeExtractor {
 public:

@@ -2,8 +2,8 @@
 
 #include <fstream>
 
-namespace svg{
-namespace loader{
+namespace svg {
+namespace loader {
 
 std::optional<std::string> SvgLoader::load_from_file(const std::filesystem::path& file_path) {
     try {

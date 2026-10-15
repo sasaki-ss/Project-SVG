@@ -6,8 +6,8 @@
 #include "parser/XmlNodeExtractor.h"
 #include "rasterizer/SvgRasterizer.h"
 
-namespace svg{
-namespace api{
+namespace svg {
+namespace api {
 
 auto SvgRenderer::render_from_file(
     const std::filesystem::path& svg_file_path,

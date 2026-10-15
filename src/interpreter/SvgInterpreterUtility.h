@@ -12,8 +12,8 @@ struct ExtractedNode;
 }
 }
 
-namespace svg{
-namespace interpreter{
+namespace svg {
+namespace interpreter {
 
 class SvgInterpreterUtility {
 public:

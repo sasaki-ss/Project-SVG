@@ -5,8 +5,8 @@
 #include <limits>
 #include <utility>
 
-namespace svg{
-namespace rasterizer{
+namespace svg {
+namespace rasterizer {
 
 auto SvgRasterizer::rasterize(
     const std::vector<draw::DrawShape>& draw_shapes,

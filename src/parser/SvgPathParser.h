@@ -7,8 +7,8 @@
 
 #include "PathCommand.h"
 
-namespace svg{
-namespace parser{
+namespace svg {
+namespace parser {
 
 class SvgPathParser {
 public:

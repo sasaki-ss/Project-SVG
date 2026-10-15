@@ -5,8 +5,8 @@
 #include <optional>
 #include <string>
 
-namespace svg{
-namespace loader{
+namespace svg {
+namespace loader {
 
 class SvgLoader {
 public:

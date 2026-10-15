@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-namespace svg{
-namespace parser{
+namespace svg {
+namespace parser {
 
 struct ExtractedAttribute {
     std::string name;

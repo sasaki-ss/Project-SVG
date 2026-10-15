@@ -6,8 +6,8 @@
 #include <variant>
 #include <vector>
 
-namespace svg{
-namespace interpreter{
+namespace svg {
+namespace interpreter {
 
 enum class SvgElementType {
     Path,

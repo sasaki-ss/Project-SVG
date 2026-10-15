@@ -5,8 +5,8 @@
 
 #include "SvgInterpreterUtility.h"
 
-namespace svg{
-namespace interpreter{
+namespace svg {
+namespace interpreter {
 
 using parser::PathCommand;
 using parser::PathCommandType;
