@@ -55,7 +55,7 @@ lucide (https://github.com/lucide-icons/lucide) のアイコンを、DXライブ
 
 ### 条件付き
 #### C++コードを実装する場合
-- `docs/coding_guidelines.md`
+- Reakspace の `lang-cpp` (`python D:/work/ai_tools/reak_read/<agent>.py lang-cpp` で読む。`<agent>` は `claude` / `codex`)
 
 #### テストコードを実装する場合
 - `docs/test_coding_guidelines.md`
