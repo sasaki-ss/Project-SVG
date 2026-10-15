@@ -3,8 +3,8 @@
 #include <cctype>
 #include <unordered_map>
 
-namespace svg{
-namespace parser{
+namespace svg {
+namespace parser {
 
 static const std::unordered_map<char, PathCommandType> PATH_COMMAND_TYPE = {
     {'M', PathCommandType::MoveTo},

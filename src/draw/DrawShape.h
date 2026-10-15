@@ -5,8 +5,8 @@
 
 #include "interpreter/PathInstruction.h"
 
-namespace svg{
-namespace draw{
+namespace svg {
+namespace draw {
 
 struct DrawShape {
     std::vector<interpreter::PathInstruction> path_instructions;

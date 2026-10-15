@@ -3,8 +3,8 @@
 #include <cctype>
 #include <utility>
 
-namespace svg{
-namespace parser{
+namespace svg {
+namespace parser {
 
 bool XmlNodeExtractor::XmlReader::is_xml_name_start_char(char value) {
     return std::isalpha(static_cast<unsigned char>(value)) != 0 || value == '_' || value == ':';

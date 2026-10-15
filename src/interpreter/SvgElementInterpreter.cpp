@@ -7,8 +7,8 @@
 #include "SvgInterpreterUtility.h"
 #include "SvgShapeInterpreter.h"
 
-namespace svg{
-namespace interpreter{
+namespace svg {
+namespace interpreter {
 
 using svg::parser::ExtractedNode;
 

@@ -7,8 +7,8 @@
 
 #include "rasterizer/RgbaImage.h"
 
-namespace svg{
-namespace api{
+namespace svg {
+namespace api {
 
 using RgbaColor = rasterizer::RgbaColor;
 using RgbaImage = rasterizer::RgbaImage;

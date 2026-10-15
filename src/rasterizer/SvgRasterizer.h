@@ -11,8 +11,8 @@
 
 #include "RgbaImage.h"
 
-namespace svg{
-namespace rasterizer{
+namespace svg {
+namespace rasterizer {
 
 class SvgRasterizer {
 public:

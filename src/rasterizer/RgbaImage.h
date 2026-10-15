@@ -4,8 +4,8 @@
 #include <cstdint>
 #include <vector>
 
-namespace svg{
-namespace rasterizer{
+namespace svg {
+namespace rasterizer {
 
 struct RgbaColor {
     std::uint8_t red;

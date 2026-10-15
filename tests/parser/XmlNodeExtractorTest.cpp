@@ -1,18 +1,16 @@
-#include <gtest/gtest.h>
-
 #include <string_view>
 
-#include "parser/XmlNodeExtractor.h"
+#include <gtest/gtest.h>
 
-namespace {
+#include "parser/XmlNodeExtractor.h"
 
 using svg::parser::ExtractedNode;
 using svg::parser::XmlNodeExtractor;
 
-void expect_attribute(const ExtractedNode& node,
-                      std::size_t index,
-                      std::string_view expected_name,
-                      std::string_view expected_value) {
+static void expect_attribute(const ExtractedNode& node,
+                             std::size_t index,
+                             std::string_view expected_name,
+                             std::string_view expected_value) {
     ASSERT_LT(index, node.attributes.size());
     EXPECT_EQ(node.attributes[index].name, expected_name);
     EXPECT_EQ(node.attributes[index].value, expected_value);
@@ -206,5 +204,3 @@ TEST(XmlNodeExtractorTest, test_abnormal_5) {
 
     EXPECT_FALSE(extracted.has_value());
 }
-
-}  // namespace

@@ -5,8 +5,8 @@
 
 #include "InterpretedSvg.h"
 
-namespace svg{
-namespace interpreter{
+namespace svg {
+namespace interpreter {
 
 enum class PathInstructionType {
     MoveTo,

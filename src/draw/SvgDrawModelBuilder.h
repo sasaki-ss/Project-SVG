@@ -9,8 +9,8 @@
 
 #include "DrawShape.h"
 
-namespace svg{
-namespace draw{
+namespace svg {
+namespace draw {
 
 class SvgDrawModelBuilder {
 public:

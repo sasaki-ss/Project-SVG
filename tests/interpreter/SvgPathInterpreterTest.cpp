@@ -1,5 +1,3 @@
-#include <gtest/gtest.h>
-
 #include <cmath>
 #include <initializer_list>
 #include <optional>
@@ -7,11 +5,11 @@
 #include <string_view>
 #include <vector>
 
+#include <gtest/gtest.h>
+
 #include "interpreter/PathInstruction.h"
 #include "interpreter/SvgPathInterpreter.h"
 #include "parser/PathCommand.h"
-
-namespace {
 
 using svg::interpreter::PathInstruction;
 using svg::interpreter::PathInstructionType;
@@ -20,7 +18,7 @@ using svg::interpreter::SvgPathInterpreter;
 using svg::parser::PathCommand;
 using svg::parser::PathCommandType;
 
-PathCommand make_command(
+static PathCommand make_command(
     PathCommandType type,
     bool is_absolute,
     std::initializer_list<std::string_view> parameters) {
@@ -33,25 +31,25 @@ PathCommand make_command(
     return command;
 }
 
-PathCommand make_move_to(
+static PathCommand make_move_to(
     std::string_view x,
     std::string_view y,
     bool is_absolute = true) {
     return make_command(PathCommandType::MoveTo, is_absolute, {x, y});
 }
 
-auto interpret_commands(const std::vector<PathCommand>& commands)
+static auto interpret_commands(const std::vector<PathCommand>& commands)
     -> std::optional<std::vector<PathInstruction>> {
     SvgPathInterpreter interpreter;
     return interpreter.interpret(commands);
 }
 
-void expect_point(const Point& point, double expected_x, double expected_y) {
+static void expect_point(const Point& point, double expected_x, double expected_y) {
     EXPECT_DOUBLE_EQ(point.x, expected_x);
     EXPECT_DOUBLE_EQ(point.y, expected_y);
 }
 
-void expect_cubic(
+static void expect_cubic(
     const PathInstruction& instruction,
     const Point& control_point1,
     const Point& control_point2,
@@ -69,7 +67,7 @@ void expect_cubic(
     expect_point(instruction.points[2], end_point.x, end_point.y);
 }
 
-Point evaluate_cubic(
+static Point evaluate_cubic(
     const Point& start_point,
     const PathInstruction& instruction,
     double t) {
@@ -562,5 +560,3 @@ TEST(SvgPathInterpreterTest, DrawingCommandWithoutCurrentPointFails) {
 
     EXPECT_FALSE(result.has_value());
 }
-
-}  // namespace

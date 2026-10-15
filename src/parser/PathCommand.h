@@ -3,8 +3,8 @@
 
 #include <vector>
 
-namespace svg{
-namespace parser{
+namespace svg {
+namespace parser {
 
 enum class PathCommandType {
     MoveTo,
