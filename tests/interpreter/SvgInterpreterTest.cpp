@@ -24,7 +24,6 @@ using svg::interpreter::RectElement;
 using svg::interpreter::StrokeLineCap;
 using svg::interpreter::StrokeLineJoin;
 using svg::interpreter::SvgElementInterpreter;
-using svg::interpreter::SvgElementType;
 using svg::interpreter::SvgShape;
 using svg::interpreter::SvgShapeInterpreter;
 using svg::parser::ExtractedAttribute;
@@ -117,11 +116,9 @@ TEST(SvgInterpreterTest, test_normal_3) {
 
     ASSERT_TRUE(interpreted.has_value());
     ASSERT_EQ(interpreted->shapes.size(), 2U);
-    EXPECT_EQ(interpreted->shapes[0].type, SvgElementType::Path);
     ASSERT_TRUE(std::holds_alternative<PathElement>(interpreted->shapes[0].data));
     EXPECT_EQ(std::get<PathElement>(interpreted->shapes[0].data).d, "M1 1L2 2");
 
-    EXPECT_EQ(interpreted->shapes[1].type, SvgElementType::Circle);
     ASSERT_TRUE(std::holds_alternative<CircleElement>(interpreted->shapes[1].data));
 
     const auto& circle = std::get<CircleElement>(interpreted->shapes[1].data);
@@ -136,7 +133,6 @@ TEST(SvgInterpreterTest, test_normal_4) {
     const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
 
     ASSERT_TRUE(shape.has_value());
-    EXPECT_EQ(shape->type, SvgElementType::Path);
     ASSERT_TRUE(std::holds_alternative<PathElement>(shape->data));
     EXPECT_EQ(std::get<PathElement>(shape->data).d, "M0 0L10 10");
 }
@@ -147,7 +143,6 @@ TEST(SvgInterpreterTest, test_normal_5) {
     const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
 
     ASSERT_TRUE(shape.has_value());
-    EXPECT_EQ(shape->type, SvgElementType::Circle);
     ASSERT_TRUE(std::holds_alternative<CircleElement>(shape->data));
 
     const auto& circle = std::get<CircleElement>(shape->data);
@@ -162,7 +157,6 @@ TEST(SvgInterpreterTest, test_normal_6) {
     const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
 
     ASSERT_TRUE(shape.has_value());
-    EXPECT_EQ(shape->type, SvgElementType::Rect);
     ASSERT_TRUE(std::holds_alternative<RectElement>(shape->data));
 
     const auto& rect = std::get<RectElement>(shape->data);
@@ -182,7 +176,6 @@ TEST(SvgInterpreterTest, test_normal_7) {
     const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
 
     ASSERT_TRUE(shape.has_value());
-    EXPECT_EQ(shape->type, SvgElementType::Rect);
     ASSERT_TRUE(std::holds_alternative<RectElement>(shape->data));
 
     const auto& rect = std::get<RectElement>(shape->data);
@@ -198,7 +191,6 @@ TEST(SvgInterpreterTest, test_normal_8) {
     const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
 
     ASSERT_TRUE(shape.has_value());
-    EXPECT_EQ(shape->type, SvgElementType::Line);
     ASSERT_TRUE(std::holds_alternative<LineElement>(shape->data));
 
     const auto& line = std::get<LineElement>(shape->data);
@@ -214,7 +206,6 @@ TEST(SvgInterpreterTest, test_normal_9) {
     const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
 
     ASSERT_TRUE(shape.has_value());
-    EXPECT_EQ(shape->type, SvgElementType::Ellipse);
     ASSERT_TRUE(std::holds_alternative<EllipseElement>(shape->data));
 
     const auto& ellipse = std::get<EllipseElement>(shape->data);
@@ -230,7 +221,6 @@ TEST(SvgInterpreterTest, test_normal_10) {
     const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
 
     ASSERT_TRUE(shape.has_value());
-    EXPECT_EQ(shape->type, SvgElementType::Polyline);
     ASSERT_TRUE(std::holds_alternative<PolylineElement>(shape->data));
 
     const auto& points = std::get<PolylineElement>(shape->data).points;
@@ -246,7 +236,6 @@ TEST(SvgInterpreterTest, test_normal_11) {
     const std::optional<SvgShape> shape = SvgShapeInterpreter::interpret(node);
 
     ASSERT_TRUE(shape.has_value());
-    EXPECT_EQ(shape->type, SvgElementType::Polygon);
     ASSERT_TRUE(std::holds_alternative<PolygonElement>(shape->data));
 
     const auto& points = std::get<PolygonElement>(shape->data).points;

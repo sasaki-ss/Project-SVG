@@ -98,7 +98,6 @@ using SvgShapeData = std::variant<
     PolygonElement>;
 
 struct SvgShape {
-    SvgElementType type;
     SvgShapeData data;
     std::optional<std::string> fill;
     std::optional<std::string> stroke;

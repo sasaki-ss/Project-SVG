@@ -41,19 +41,19 @@ private:
         -> std::optional<ResolvedStyle>;
     static auto make_path_instructions(const interpreter::SvgShape& shape)
         -> std::optional<std::vector<interpreter::PathInstruction>>;
-    static auto make_path_element_instructions(const interpreter::PathElement& element)
+    static auto make_element_instructions(const interpreter::PathElement& element)
         -> std::optional<std::vector<interpreter::PathInstruction>>;
-    static auto make_circle_instructions(const interpreter::CircleElement& element)
+    static auto make_element_instructions(const interpreter::CircleElement& element)
         -> std::optional<std::vector<interpreter::PathInstruction>>;
-    static auto make_rect_instructions(const interpreter::RectElement& element)
+    static auto make_element_instructions(const interpreter::RectElement& element)
         -> std::optional<std::vector<interpreter::PathInstruction>>;
-    static auto make_line_instructions(const interpreter::LineElement& element)
+    static auto make_element_instructions(const interpreter::LineElement& element)
         -> std::optional<std::vector<interpreter::PathInstruction>>;
-    static auto make_ellipse_instructions(const interpreter::EllipseElement& element)
+    static auto make_element_instructions(const interpreter::EllipseElement& element)
         -> std::optional<std::vector<interpreter::PathInstruction>>;
-    static auto make_polyline_instructions(const interpreter::PolylineElement& element)
+    static auto make_element_instructions(const interpreter::PolylineElement& element)
         -> std::optional<std::vector<interpreter::PathInstruction>>;
-    static auto make_polygon_instructions(const interpreter::PolygonElement& element)
+    static auto make_element_instructions(const interpreter::PolygonElement& element)
         -> std::optional<std::vector<interpreter::PathInstruction>>;
     static auto make_ellipse_path(
         const interpreter::Point& center,
